@@ -5,7 +5,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * Dashboard indicators. Every number is read from Oracle via aggregate
+ * Dashboard indicators. Every number is read from PostgreSQL via aggregate
  * queries; nothing is hard-coded in the application tier.
  */
 @Repository
@@ -22,8 +22,8 @@ public class DashboardRepository {
         s.setTotalEmployees(jdbc.queryForObject("SELECT COUNT(*) FROM EMPLOYEES", Integer.class));
         s.setTotalDepartments(jdbc.queryForObject("SELECT COUNT(*) FROM DEPARTMENTS", Integer.class));
         s.setTotalJobs(jdbc.queryForObject("SELECT COUNT(*) FROM JOBS", Integer.class));
-        s.setTotalSalary(jdbc.queryForObject("SELECT NVL(SUM(SALARY),0) FROM EMPLOYEES", java.math.BigDecimal.class));
-        s.setAvgSalary(jdbc.queryForObject("SELECT NVL(ROUND(AVG(SALARY),2),0) FROM EMPLOYEES", java.math.BigDecimal.class));
+        s.setTotalSalary(jdbc.queryForObject("SELECT COALESCE(SUM(SALARY),0) FROM EMPLOYEES", java.math.BigDecimal.class));
+        s.setAvgSalary(jdbc.queryForObject("SELECT COALESCE(ROUND(AVG(SALARY),2),0) FROM EMPLOYEES", java.math.BigDecimal.class));
         return s;
     }
 }

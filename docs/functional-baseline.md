@@ -1,11 +1,16 @@
 # Línea base funcional — GEPER
 
 Valores verificables tras provisionar el esquema y cargar
-`db/data/03_synthetic_data.sql`. Sirven como referencia para comprobar que una
-migración o modernización **preserva el comportamiento**. Verificado el
-2026-11-06 contra **Oracle Database 12c Enterprise Edition Release 12.2.0.1.0**
-(PDB `GEPERPDB` sobre Oracle Linux Server 7.4 en Azure `mexicocentral`, con
-Java 8 `1.8.0_432` y `ojdbc8` `12.2.0.1`).
+`db/migration/postgres/03_pg_synthetic_data.sql`. Sirven como referencia para
+comprobar que una migración o modernización **preserva el comportamiento**.
+Línea base original verificada el 2026-11-06 contra **Oracle Database 12c
+Enterprise Edition Release 12.2.0.1.0** (PDB `GEPERPDB` sobre Oracle Linux
+Server 7.4 en Azure `mexicocentral`, con Java 8 `1.8.0_432` y `ojdbc8`
+`12.2.0.1`), antes de las tareas `001-upgrade-java21-springboot35` y
+`002-transform-oracle-to-postgresql`. Los conteos y agregados sintéticos
+siguientes son invariantes frente al motor de base de datos (misma data,
+mismo `fn_update_job_history()`/`UPDATE_JOB_HISTORY` equivalente) y deben
+coincidir al re-verificar contra PostgreSQL.
 
 ## Conteos
 
@@ -38,7 +43,7 @@ SELECT ROUND(AVG(SALARY),2) FROM EMPLOYEES;    -- 3326.67
 ### Resumen salarial por departamento (orden por suma desc.)
 
 El tablero y `/departamentos` deben reproducir estos totales (calculados en
-Oracle; nunca hardcodeados):
+PostgreSQL; nunca hardcodeados):
 
 | Depto | Nombre | Empleados | Suma salarial |
 |-------|--------|-----------|---------------|
@@ -52,7 +57,7 @@ Oracle; nunca hardcodeados):
 
 > Los 30 empleados tienen departamento asignado. Los totales se recalculan en
 > vivo con la consulta de `DepartmentRepository.salarySummary` (agregación en
-> Oracle, nunca hardcodeados).
+> PostgreSQL, nunca hardcodeados).
 
 ## Relaciones comprobables
 
@@ -73,17 +78,17 @@ Oracle; nunca hardcodeados):
 
 ## Comportamiento del trigger (criterios)
 
-1. `UPDATE EMPLOYEES SET JOB_ID='SUPERV' WHERE EMPLOYEE_ID=126` crea **una**
-   fila en `JOB_HISTORY` para el empleado 126 con `JOB_ID='OPER'` (el previo) y
-   `END_DATE = TRUNC(SYSDATE)`.
-2. `UPDATE EMPLOYEES SET SALARY=SALARY+1 WHERE EMPLOYEE_ID=126` **no** crea
+1. `UPDATE employees SET job_id='SUPERV' WHERE employee_id=126` crea **una**
+   fila en `job_history` para el empleado 126 con `job_id='OPER'` (el previo) y
+   `end_date = CURRENT_DATE`.
+2. `UPDATE employees SET salary=salary+1 WHERE employee_id=126` **no** crea
    historial.
 3. La inserción de historial es **transaccional**: si la transacción hace
    `ROLLBACK`, la fila de historial no queda.
 
 Verificado por `GeperIntegrationTest.changingAssignmentCreatesJobHistoryViaTrigger`
 y `salaryOnlyChangeDoesNotCreateHistory` (ambos con rollback), y manualmente en
-sqlplus.
+`psql`.
 
 ## Búsqueda (contraste de seguridad)
 

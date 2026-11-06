@@ -1,63 +1,67 @@
 # Diccionario de datos — GEPER
 
-Esquema Oracle propiedad de `GEPER_OWNER`. Todos los datos son sintéticos.
+Esquema PostgreSQL `geper_owner`, propiedad del rol `geper_owner`. Todos los
+datos son sintéticos. Convertido desde el esquema Oracle original en la tarea
+`002-transform-oracle-to-postgresql` (ver
+`db/migration/postgres/01_pg_schema_and_roles.sql`).
 
-## DEPARTMENTS
+## departments
 | Columna | Tipo | Nulo | Descripción |
 |---------|------|------|-------------|
-| `DEPARTMENT_ID` | `NUMBER(6)` | NO | PK. Alimentada por `DEPARTMENTS_SEQ` |
-| `DEPARTMENT_NAME` | `VARCHAR2(60)` | NO | Único |
-| `LOCATION` | `VARCHAR2(80)` | SÍ | Ubicación |
+| `department_id` | `INTEGER` | NO | PK. Alimentada por `departments_seq` |
+| `department_name` | `VARCHAR(60)` | NO | Único |
+| `location` | `VARCHAR(80)` | SÍ | Ubicación |
 
-## JOBS
+## jobs
 | Columna | Tipo | Nulo | Descripción |
 |---------|------|------|-------------|
-| `JOB_ID` | `VARCHAR2(12)` | NO | PK (código, p. ej. `DESARR`) |
-| `JOB_TITLE` | `VARCHAR2(60)` | NO | Título |
-| `MIN_SALARY` | `NUMBER(9,2)` | SÍ | Rango mínimo |
-| `MAX_SALARY` | `NUMBER(9,2)` | SÍ | Rango máximo (`CHECK MAX>=MIN`) |
+| `job_id` | `VARCHAR(12)` | NO | PK (código, p. ej. `DESARR`) |
+| `job_title` | `VARCHAR(60)` | NO | Título |
+| `min_salary` | `NUMERIC(9,2)` | SÍ | Rango mínimo |
+| `max_salary` | `NUMERIC(9,2)` | SÍ | Rango máximo (`CHECK max_salary>=min_salary`) |
 
-## EMPLOYEES
+## employees
 | Columna | Tipo | Nulo | Descripción |
 |---------|------|------|-------------|
-| `EMPLOYEE_ID` | `NUMBER(6)` | NO | PK. Alimentada por `EMPLOYEES_SEQ` |
-| `FIRST_NAME` | `VARCHAR2(40)` | NO | Nombre |
-| `LAST_NAME` | `VARCHAR2(40)` | NO | Apellidos |
-| `EMAIL` | `VARCHAR2(80)` | SÍ | Único |
-| `HIRE_DATE` | `DATE` | NO | Ingreso (`DEFAULT SYSDATE`) |
-| `JOB_ID` | `VARCHAR2(12)` | NO | FK → `JOBS` |
-| `SALARY` | `NUMBER(9,2)` | NO | `CHECK SALARY > 0` |
-| `DEPARTMENT_ID` | `NUMBER(6)` | SÍ | FK → `DEPARTMENTS` |
-| `ASSIGNMENT_START_DATE` | `DATE` | NO | Inicio de la asignación actual; mantenido por el trigger |
-| `OBSERVATIONS` | `VARCHAR2(2000)` | SÍ | Notas; almacenamiento del lab XSS |
+| `employee_id` | `INTEGER` | NO | PK. Alimentada por `employees_seq` |
+| `first_name` | `VARCHAR(40)` | NO | Nombre |
+| `last_name` | `VARCHAR(40)` | NO | Apellidos |
+| `email` | `VARCHAR(80)` | SÍ | Único |
+| `hire_date` | `DATE` | NO | Ingreso (`DEFAULT CURRENT_DATE`) |
+| `job_id` | `VARCHAR(12)` | NO | FK → `jobs` |
+| `salary` | `NUMERIC(9,2)` | NO | `CHECK salary > 0` |
+| `department_id` | `INTEGER` | SÍ | FK → `departments` |
+| `assignment_start_date` | `DATE` | NO | Inicio de la asignación actual; mantenido por el trigger |
+| `observations` | `VARCHAR(2000)` | SÍ | Notas; almacenamiento del lab XSS |
 
-Índices: `IX_EMP_DEPT(DEPARTMENT_ID)`, `IX_EMP_JOB(JOB_ID)`, `IX_EMP_LAST(LAST_NAME)`.
+Índices: `ix_emp_dept(department_id)`, `ix_emp_job(job_id)`, `ix_emp_last(last_name)`.
 
-## JOB_HISTORY
+## job_history
 | Columna | Tipo | Nulo | Descripción |
 |---------|------|------|-------------|
-| `EMPLOYEE_ID` | `NUMBER(6)` | NO | PK compuesta, FK → `EMPLOYEES` |
-| `START_DATE` | `DATE` | NO | PK compuesta; inicio de la asignación cerrada |
-| `END_DATE` | `DATE` | NO | Fin (`CHECK END>=START`) |
-| `JOB_ID` | `VARCHAR2(12)` | NO | FK → `JOBS` (puesto previo) |
-| `DEPARTMENT_ID` | `NUMBER(6)` | SÍ | FK → `DEPARTMENTS` (departamento previo) |
+| `employee_id` | `INTEGER` | NO | PK compuesta, FK → `employees` |
+| `start_date` | `DATE` | NO | PK compuesta; inicio de la asignación cerrada |
+| `end_date` | `DATE` | NO | Fin (`CHECK end_date>=start_date`) |
+| `job_id` | `VARCHAR(12)` | NO | FK → `jobs` (puesto previo) |
+| `department_id` | `INTEGER` | SÍ | FK → `departments` (departamento previo) |
 
 ## Secuencias
 | Nombre | Start | Incremento |
 |--------|-------|-----------|
-| `DEPARTMENTS_SEQ` | 50 | 10 |
-| `EMPLOYEES_SEQ` | 1000 | 1 |
+| `departments_seq` | 70 | 10 |
+| `employees_seq` | 1000 | 1 |
 
 ## Trigger
+
 | Nombre | Evento | Lógica |
 |--------|--------|--------|
-| `UPDATE_JOB_HISTORY` | `BEFORE UPDATE OF JOB_ID, DEPARTMENT_ID ON EMPLOYEES`, por fila | Si cambia puesto o departamento: inserta en `JOB_HISTORY` la asignación previa y adelanta `ASSIGNMENT_START_DATE`. No se dispara por cambio de salario. |
+| `update_job_history` (ejecuta `geper_owner.fn_update_job_history()`, `SECURITY DEFINER`) | `BEFORE UPDATE OF job_id, department_id ON employees`, por fila | Si cambia puesto o departamento: inserta en `job_history` la asignación previa y adelanta `assignment_start_date` a `CURRENT_DATE`. No se dispara por cambio de salario. |
 
 ## Relaciones (resumen)
 
 ```
-DEPARTMENTS 1───* EMPLOYEES *───1 JOBS
+departments 1───* employees *───1 jobs
       ^                 │
       │                 * (al cambiar puesto/depto, vía trigger)
-      └──────────── JOB_HISTORY ───┘
+      └──────────── job_history ───┘
 ```

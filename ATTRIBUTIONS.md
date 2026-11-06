@@ -14,9 +14,11 @@ were copied in.
   which Oracle publishes under the Apache License 2.0
   (https://github.com/oracle-samples/db-sample-schemas). The table and trigger
   *names and structure* follow that familiar teaching example so the lab is
-  recognisable, but **all data in `db/data/` is fictitious and original** and
-  the DDL/PL/SQL here was authored for this project. No rows, comments, or
-  files from the Oracle sample were copied.
+  recognisable, but **all data in `db/migration/postgres/` is fictitious and
+  original** and the DDL/PL/pgSQL here was authored for this project (originally
+  authored as Oracle DDL/PL/SQL, migrated to PostgreSQL/PL/pgSQL in task
+  `002-transform-oracle-to-postgresql`). No rows, comments, or files from the
+  Oracle sample were copied.
 
   A future modernization effort is free to restructure or replace any of this.
 
@@ -24,8 +26,10 @@ were copied in.
 
 Resolved at build time by Maven; not redistributed in this repository:
 
-- Spring Boot 2.7.x and its transitive dependencies (Apache License 2.0)
-- Oracle JDBC driver `ojdbc8` (Oracle Free Use Terms and Conditions / OTN
-  license) — downloaded from Maven Central, not vendored here.
+- Spring Boot and its transitive dependencies (Apache License 2.0)
+- PostgreSQL JDBC driver `org.postgresql:postgresql` (BSD 2-Clause license) —
+  downloaded from Maven Central, not vendored here. Replaces the previously
+  used Oracle JDBC driver `ojdbc8` as part of task
+  `002-transform-oracle-to-postgresql`.
 
 No third-party binaries or images are distributed in this repository.

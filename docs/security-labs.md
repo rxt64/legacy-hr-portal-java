@@ -36,8 +36,9 @@ Cada caso está marcado en el código con
    ```java
    "... WHERE UPPER(e.LAST_NAME) LIKE UPPER('%" + term + "%') ORDER BY e.LAST_NAME"
    ```
-3. **Llegada a Oracle:** en `vulnerableSearch`, la cadena se ejecuta con un
-   `java.sql.Statement` (`st.executeQuery(sql)`), sin parámetros vinculados.
+3. **Llegada a PostgreSQL:** en `vulnerableSearch`, la cadena se ejecuta con un
+   `java.sql.PreparedStatement` vinculado (remediado en la tarea
+   `001-upgrade-java21-springboot35`).
 
 ### Reproducción local inocua
 1. Buscar `mora` → filtra a **2 filas** (apellidos que contienen "mora").
@@ -103,7 +104,7 @@ vista de laboratorio. Sin lectura de cookies, exfiltración ni llamadas
 externas.
 
 ### Restablecimiento
-`db/reset/90_reset_lab.sql` restaura las observaciones al baseline sembrado.
+`db/migration/postgres/90_pg_reset_lab.sql` restaura las observaciones al baseline sembrado.
 También `POST /lab/xss/reset/{id}` limpia el empleado puntual.
 
 ### Causa raíz
@@ -150,7 +151,11 @@ Tres grupos separados (ver `src/test/java/com/monteazul/geper`):
 
 ### Resultado de ejecución registrado
 
-Ejecutado el 2026-11-06 contra Oracle Free 23c local (`gvenzl/oracle-free`):
+Ejecutado el 2026-11-06 contra Oracle Free 23c local (`gvenzl/oracle-free`)
+antes de la migración de base de datos (tarea
+`002-transform-oracle-to-postgresql`); re-ejecutar contra PostgreSQL local
+(`postgres:16-alpine`, ver `scripts/provision-local-db.sh`) actualiza estos
+números si cambian:
 
 ```
 GeperIntegrationTest .................. Tests run: 9,  Failures: 0, Errors: 0

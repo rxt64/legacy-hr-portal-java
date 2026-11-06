@@ -9,12 +9,14 @@ construida a propósito sobre un stack empresarial de ~2012 para servir como
 *línea base* en un laboratorio de modernización y seguridad. No es una
 plantilla de producción.
 
-- **Java 8** (bytecode objetivo 1.8)
-- **Spring Boot 2.7.18** + **Maven**
-- **Oracle Database** (probado contra Oracle Free 23c), driver **ojdbc8**
+- **Java 21** (Spring Boot 3.5, Jakarta EE 10)
+- **Spring Boot 3.5.0** + **Maven**
+- **Azure Database for PostgreSQL Flexible Server** (PostgreSQL 16), driver **org.postgresql:postgresql**
 - Interfaz **renderizada en servidor** con Thymeleaf (intranet estilo 2012)
-- Objetos Oracle reales: `NUMBER`/`VARCHAR2`, **secuencias**, **trigger
-  `UPDATE_JOB_HISTORY`** y consultas específicas de Oracle
+- Objetos PostgreSQL nativos: `INTEGER`/`VARCHAR`/`NUMERIC`, **secuencias**,
+  **función de trigger `fn_update_job_history()`** (PL/pgSQL, equivalente al
+  antiguo trigger Oracle `UPDATE_JOB_HISTORY`) y consultas en dialecto ANSI
+  SQL (`COALESCE`, `nextval(...)`)
 
 El propósito es que herramientas como GitHub Copilot y agentes de
 modernización analicen, migren y corrijan esta base después. **No** incluye
@@ -26,7 +28,7 @@ versiones modernizadas, infraestructura de nube ni funcionalidades de IA.
 
 | Área | Detalle |
 |------|---------|
-| Tablero | Empleados, departamentos, puestos, suma y promedio salarial — **todo calculado en Oracle** |
+| Tablero | Empleados, departamentos, puestos, suma y promedio salarial — **todo calculado en PostgreSQL** |
 | Empleados | Búsqueda por nombre / departamento / puesto, ficha, alta y edición |
 | Cambios | Salario; puesto y departamento (generan **historial** vía trigger) |
 | Puestos | Catálogo con rangos salariales mínimo/máximo |
@@ -35,31 +37,35 @@ versiones modernizadas, infraestructura de nube ni funcionalidades de IA.
 
 ## 2. Requisitos
 
-- JDK 8+ (el proyecto compila a bytecode 1.8; se probó con JDK 21 como JDK de build)
+- JDK 21+
 - Maven 3.8+
-- Una base Oracle local. La forma más rápida es Docker:
+- Una base PostgreSQL local. La forma más rápida es Docker:
 
 ```bash
 ./scripts/provision-local-db.sh
 ```
 
-Ese script levanta un contenedor **Oracle Free** enlazado solo a `127.0.0.1`,
-crea las cuentas de permisos mínimos y carga el esquema y los datos sintéticos.
+Ese script levanta un contenedor **PostgreSQL 16** enlazado solo a
+`127.0.0.1`, crea los roles de permisos mínimos y carga el esquema, el
+trigger y los datos sintéticos.
 
-> Las cuentas son `GEPER_OWNER` (dueña del esquema, uso administrativo),
-> `GEPER_APP` (**cuenta de ejecución**, permisos mínimos) y `GEPER_LABRO`
+> Los roles son `geper_owner` (dueño del esquema, uso administrativo),
+> `geper_app` (**cuenta de ejecución**, permisos mínimos) y `geper_labro`
 > (solo lectura, usada únicamente por el laboratorio de SQLi). **No se usa
-> `SYS`, `SYSTEM` ni ninguna cuenta privilegiada como cuenta de ejecución.**
+> ningún rol superusuario como cuenta de ejecución.**
 
-### Provisión manual (sqlplus / SQLcl)
+### Provisión manual (psql)
 
 ```bash
-# como DBA (SYSTEM) en la PDB:
-@db/accounts/01_create_accounts.sql
-# como GEPER_OWNER:
-@db/schema/02_schema.sql
-@db/data/03_synthetic_data.sql
+# como superusuario/admin (p. ej. postgres):
+psql -f db/migration/postgres/01_pg_schema_and_roles.sql
+psql -f db/migration/postgres/02_pg_trigger_update_job_history.sql
+# como geper_owner (o el mismo superusuario):
+psql -f db/migration/postgres/03_pg_synthetic_data.sql
 ```
+
+Para el plan de transferencia de datos existentes desde Oracle 12c R2, ver
+[docs/migration/oracle-to-postgresql-data-transfer-plan.md](docs/migration/oracle-to-postgresql-data-transfer-plan.md).
 
 ## 3. Ejecutar la aplicación normal
 
@@ -94,16 +100,16 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local-lab
 
 Con los labs activos aparece una banda visible **“Laboratorio vulnerable
 activo · Datos ficticios”** y el menú **Laboratorio** (`/lab`). Para
-restablecer el ejercicio de XSS: `db/reset/90_reset_lab.sql`.
+restablecer el ejercicio de XSS: `db/migration/postgres/90_pg_reset_lab.sql`.
 
 ## 5. Pruebas
 
 ```bash
-# Unitarias/offline (no requieren Oracle): gating de labs, loopback, SQL string
+# Unitarias/offline (no requieren PostgreSQL): gating de labs, loopback, SQL string
 mvn test
 
 # Integración contra una base local (funcional + trigger):
-export GEPER_IT_JDBC_URL='jdbc:oracle:thin:@//localhost:1521/FREEPDB1'
+export GEPER_IT_JDBC_URL='jdbc:postgresql://localhost:5432/geper'
 export GEPER_IT_JDBC_PASSWORD='App#Lab2012'
 mvn test
 
@@ -119,19 +125,20 @@ repositorio.
 
 ## 6. Documentación
 
-- [infra/azure/README.md](infra/azure/README.md) — **IaC en Bicep (`mexicocentral`), Oracle 12c R2, Azure Front Door y operación en Azure**
+- [infra/azure/README.md](infra/azure/README.md) — **IaC en Bicep (`mexicocentral`), VM legacy Oracle 12c R2, Azure Front Door y operación en Azure** (infraestructura heredada; pendiente de reemplazo por Azure Database for PostgreSQL Flexible Server / Azure Container Apps en una tarea de despliegue posterior)
 - [docs/architecture.md](docs/architecture.md) — arquitectura y acoplamientos
 - [docs/data-dictionary.md](docs/data-dictionary.md) — diccionario de datos
 - [docs/functional-baseline.md](docs/functional-baseline.md) — línea base verificable
 - [docs/security-labs.md](docs/security-labs.md) — ejercicios de seguridad
 - [docs/demo-objectives.md](docs/demo-objectives.md) — objetivos de la demo
+- [docs/migration/oracle-to-postgresql-data-transfer-plan.md](docs/migration/oracle-to-postgresql-data-transfer-plan.md) — plan de transferencia de datos Oracle → PostgreSQL
 - [SECURITY.md](SECURITY.md) — naturaleza del laboratorio
 - [ATTRIBUTIONS.md](ATTRIBUTIONS.md) — atribuciones
 
 ## 7. Estructura
 
 ```
-db/            Scripts SQL: accounts/ schema/ data/ reset/
+db/            Scripts SQL: migration/postgres/ (esquema, roles, trigger, datos, reset)
 scripts/       provision-local-db.sh
 src/main/java/com/monteazul/geper/
   config/      Gating de labs (propiedades, filtro loopback, atributos)

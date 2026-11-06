@@ -20,7 +20,7 @@ public class DepartmentController {
         this.employees = employees;
     }
 
-    /** Department list with the per-department salary summary (Oracle aggregates). */
+    /** Department list with the per-department salary summary (PostgreSQL aggregates). */
     @GetMapping
     public String list(Model model) {
         model.addAttribute("summary", catalog.salarySummary());

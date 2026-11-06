@@ -26,12 +26,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * GROUP 1 - functional baseline against a REAL local Oracle instance, plus a
+ * GROUP 1 - functional baseline against a REAL local PostgreSQL instance, plus a
  * GROUP 2 web check that /lab routes are 404 while the labs are disabled.
  *
  * Runs only when GEPER_IT_JDBC_URL is set (a local instance seeded with
- * db/accounts + db/schema + db/data). All mutating tests run inside a
- * transaction that is rolled back, so the seeded baseline is preserved.
+ * db/migration/postgres/01_pg_schema_and_roles.sql + 02_pg_trigger_update_job_history.sql
+ * + 03_pg_synthetic_data.sql). All mutating tests run inside a transaction
+ * that is rolled back, so the seeded baseline is preserved.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -59,7 +60,7 @@ class GeperIntegrationTest {
     @Autowired MockMvc mockMvc;
 
     @Test
-    void dashboardAggregatesComeFromOracleAndMatchBaseline() {
+    void dashboardAggregatesComeFromPostgresAndMatchBaseline() {
         DashboardStats s = dashboard.stats();
         assertThat(s.getTotalEmployees()).isEqualTo(30);
         assertThat(s.getTotalDepartments()).isEqualTo(6);

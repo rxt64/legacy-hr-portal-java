@@ -2,7 +2,7 @@ package com.monteazul.geper.domain;
 
 import java.math.BigDecimal;
 
-/** A department. DEPARTMENT_ID is an Oracle NUMBER fed by DEPARTMENTS_SEQ. */
+/** A department. DEPARTMENT_ID is a PostgreSQL INTEGER fed by departments_seq. */
 public class Department {
     private Integer departmentId;
     private String departmentName;

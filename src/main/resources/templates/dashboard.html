@@ -16,7 +16,7 @@
                 <div class="kpi"><div class="n" th:text="${#numbers.formatDecimal(stats.totalSalary,1,'COMMA',2,'POINT')}">0</div><div class="l">Suma salarial</div></div>
                 <div class="kpi"><div class="n" th:text="${#numbers.formatDecimal(stats.avgSalary,1,'COMMA',2,'POINT')}">0</div><div class="l">Salario promedio</div></div>
             </div>
-            <p class="muted" style="margin:6px 0 0 0">Todos los indicadores se calculan en Oracle mediante consultas de agregaci&oacute;n.</p>
+            <p class="muted" style="margin:6px 0 0 0">Todos los indicadores se calculan en PostgreSQL mediante consultas de agregaci&oacute;n.</p>
         </div>
     </div>
 

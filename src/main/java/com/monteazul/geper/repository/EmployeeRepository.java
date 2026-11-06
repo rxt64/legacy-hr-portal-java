@@ -72,9 +72,9 @@ public class EmployeeRepository {
         return named.query(sql.toString(), p, RowMappers.EMPLOYEE);
     }
 
-    /** Inserts a new employee, taking the id from EMPLOYEES_SEQ (Oracle sequence). */
+    /** Inserts a new employee, taking the id from employees_seq (PostgreSQL sequence). */
     public int insert(Employee e) {
-        Integer id = jdbc.queryForObject("SELECT EMPLOYEES_SEQ.NEXTVAL FROM DUAL", Integer.class);
+        Integer id = jdbc.queryForObject("SELECT nextval('employees_seq')", Integer.class);
         named.update(
             "INSERT INTO EMPLOYEES (EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, HIRE_DATE, " +
             "JOB_ID, SALARY, DEPARTMENT_ID, ASSIGNMENT_START_DATE, OBSERVATIONS) " +

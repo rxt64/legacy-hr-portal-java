@@ -2,7 +2,7 @@ package com.monteazul.geper.domain;
 
 import java.math.BigDecimal;
 
-/** Aggregate indicators for the dashboard. Every value is computed in Oracle. */
+/** Aggregate indicators for the dashboard. Every value is computed in PostgreSQL. */
 public class DashboardStats {
     private int totalEmployees;
     private int totalDepartments;

@@ -10,9 +10,9 @@
 #   mvn spring-boot:run -Dspring-boot.run.profiles=local-lab
 #
 # The passwords below are THROWAWAY LAB VALUES that match
-# db/accounts/01_create_accounts.sql. They protect only a loopback database
-# full of synthetic data. Never reuse them anywhere real, and never commit a
-# filled-in application-local-lab.yml.
+# db/migration/postgres/01_pg_schema_and_roles.sql. They protect only a
+# loopback database full of synthetic data. Never reuse them anywhere real,
+# and never commit a filled-in application-local-lab.yml.
 # =====================================================================
 server:
   # Bind to loopback only while the labs are enabled.
@@ -21,14 +21,14 @@ server:
 
 spring:
   datasource:
-    url: jdbc:oracle:thin:@//localhost:1521/GEPERPDB
-    username: GEPER_APP
+    url: jdbc:postgresql://localhost:5432/geper
+    username: geper_app
     password: App#Lab2012
 
 geper:
   labs:
     enabled: true
     datasource:
-      url: jdbc:oracle:thin:@//localhost:1521/GEPERPDB
-      username: GEPER_LABRO
+      url: jdbc:postgresql://localhost:5432/geper
+      username: geper_labro
       password: LabRo#Lab2012

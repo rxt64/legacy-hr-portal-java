@@ -32,7 +32,7 @@ public class DepartmentRepository {
     }
 
     public int insert(Department d) {
-        Integer id = jdbc.queryForObject("SELECT DEPARTMENTS_SEQ.NEXTVAL FROM DUAL", Integer.class);
+        Integer id = jdbc.queryForObject("SELECT nextval('departments_seq')", Integer.class);
         named.update("INSERT INTO DEPARTMENTS (DEPARTMENT_ID, DEPARTMENT_NAME, LOCATION) " +
                 "VALUES (:id, :name, :loc)",
             new MapSqlParameterSource().addValue("id", id)
@@ -50,15 +50,15 @@ public class DepartmentRepository {
 
     /**
      * Salary summary per department. Aggregates (headcount, total and average
-     * salary) are computed entirely in Oracle; no figure is hard-coded.
+     * salary) are computed entirely in PostgreSQL; no figure is hard-coded.
      * Uses a LEFT JOIN so empty departments still appear with a zero headcount.
      */
     public List<Department> salarySummary() {
         return jdbc.query(
             "SELECT d.DEPARTMENT_ID, d.DEPARTMENT_NAME, d.LOCATION, " +
             "       COUNT(e.EMPLOYEE_ID) AS HEADCOUNT, " +
-            "       NVL(SUM(e.SALARY), 0) AS TOTAL_SALARY, " +
-            "       NVL(ROUND(AVG(e.SALARY), 2), 0) AS AVG_SALARY " +
+            "       COALESCE(SUM(e.SALARY), 0) AS TOTAL_SALARY, " +
+            "       COALESCE(ROUND(AVG(e.SALARY), 2), 0) AS AVG_SALARY " +
             "FROM DEPARTMENTS d " +
             "LEFT JOIN EMPLOYEES e ON e.DEPARTMENT_ID = d.DEPARTMENT_ID " +
             "GROUP BY d.DEPARTMENT_ID, d.DEPARTMENT_NAME, d.LOCATION " +

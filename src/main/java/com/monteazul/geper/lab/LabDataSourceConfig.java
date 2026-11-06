@@ -33,8 +33,8 @@ public class LabDataSourceConfig {
         cfg.setPoolName("geper-lab-ro");
         cfg.setReadOnly(true);
         // Resolve unqualified object names to the owning schema; the account
-        // still holds only the SELECT grants issued in 02_schema.sql.
-        cfg.setConnectionInitSql("ALTER SESSION SET CURRENT_SCHEMA = GEPER_OWNER");
+        // still holds only the SELECT grants issued in 01_pg_schema_and_roles.sql.
+        cfg.setConnectionInitSql("SET search_path TO geper_owner, public");
         return new HikariDataSource(cfg);
     }
 }

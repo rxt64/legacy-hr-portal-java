@@ -2,7 +2,7 @@ package com.monteazul.geper.domain;
 
 import java.math.BigDecimal;
 
-/** A job/position with its salary range. JOB_ID is an Oracle VARCHAR2 code. */
+/** A job/position with its salary range. JOB_ID is a PostgreSQL VARCHAR code. */
 public class Job {
     private String jobId;
     private String jobTitle;

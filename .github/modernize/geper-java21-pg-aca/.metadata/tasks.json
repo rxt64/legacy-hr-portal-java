@@ -52,7 +52,13 @@
         "passBuild": "true",
         "passUnitTests": "true"
       },
-      "dependencies": ["001-upgrade-java21-springboot35"]
+      "dependencies": ["001-upgrade-java21-springboot35"],
+      "status": "success",
+      "taskSummary": "Migrated GEPER's database layer from Oracle Database 12c R2 to Azure Database for PostgreSQL Flexible Server. Replaced db/accounts, db/schema, db/data, db/reset with db/migration/postgres/ (roles geper_owner/geper_app/geper_labro, PostgreSQL-native schema/types, departments_seq/employees_seq sequences). Reimplemented UPDATE_JOB_HISTORY as a SECURITY DEFINER PL/pgSQL function + trigger with search_path hardening. Converted Oracle JDBC dialect in DepartmentRepository/EmployeeRepository/DashboardRepository (NVL->COALESCE, NEXTVAL/DUAL->nextval()) and LabDataSourceConfig/application.yml (ALTER SESSION->SET search_path). Replaced the ojdbc8 Maven dependency with org.postgresql:postgresql. Authored an offline data transfer plan (docs/migration/oracle-to-postgresql-data-transfer-plan.md) and updated provisioning scripts/docs. Consistency check reported 0 Critical/0 Major issues (1 Minor, already addressed via documented lab-only placeholder credentials). Build and full unit test suite passed on JDK 21 (integration tests correctly skip without a live PostgreSQL instance).",
+      "successCriteriaStatus": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      }
     },
     {
       "type": "security",

@@ -1,9 +1,11 @@
 # Objetivos de la demostración — GEPER
 
-GEPER es el **estado legacy** de partida. Esta demo ejercita cuatro temas de
-modernización. Nada de lo siguiente está implementado aquí; se documenta como
-destino futuro, sin añadir instrucciones permanentes que impidan a un agente
-modernizar o corregir el código después.
+GEPER partió de un **estado legacy** (Java 8 / Spring Boot 2.7 / Oracle) y
+ejercita cuatro temas de modernización. Los temas 1 y 2 ya se implementaron
+en este repositorio (tareas `001-upgrade-java21-springboot35` y
+`002-transform-oracle-to-postgresql`); el resto permanece como destino
+futuro documentado, sin añadir instrucciones permanentes que impidan a un
+agente modernizar o corregir el código después.
 
 ## Los cuatro temas
 
@@ -15,11 +17,13 @@ del trigger, etc. La línea base en `functional-baseline.md` permite verificar
 que cada cambio preserva el comportamiento.
 
 ### 2. Migración de base de datos a servicios administrados
-Acoplamientos Oracle a resolver: **secuencias**, **trigger PL/SQL**, funciones
-`NVL`/`ROUND`/`DUAL`. **Destino futuro propuesto (no implementado):
-Java moderno + Azure Database for PostgreSQL**, con secuencias → `IDENTITY`/
-`GENERATED`, y decisión explícita sobre reescribir el trigger o moverlo a la
-aplicación.
+Acoplamientos Oracle resueltos (tarea `002-transform-oracle-to-postgresql`):
+**secuencias**, **trigger PL/SQL**, funciones `NVL`/`ROUND`/`DUAL`. **Destino
+implementado: Java 21 / Spring Boot 3.5 + Azure Database for PostgreSQL
+Flexible Server**, con secuencias Oracle convertidas a secuencias nativas de
+PostgreSQL (`employees_seq`/`departments_seq`) y el trigger reescrito como
+una función PL/pgSQL `SECURITY DEFINER` (`fn_update_job_history()`) que
+preserva el comportamiento y los permisos originales.
 
 ### 3. Identificación y corrección de vulnerabilidades
 Dos defectos intencionales verificables (`JAVA-SQLI-01`, `JAVA-XSS-01`) con
@@ -30,14 +34,14 @@ demostrar el ciclo: detectar → explicar impacto → proponer fix → validar.
 Datos sintéticos coherentes, diccionario de datos y una línea base estable
 sobre la que construir, más adelante, consultas asistidas por IA (ver abajo).
 
-## Destinos futuros (documentados, NO implementados)
+## Estado de los destinos (algunos ya implementados)
 
-| Aspecto | Hoy (legacy) | Destino futuro propuesto |
+| Aspecto | Antes (legacy) | Estado actual |
 |---------|--------------|--------------------------|
-| Lenguaje/runtime | Java 8, Spring Boot 2.7 | Java moderno (LTS), Spring Boot 3 |
-| Base de datos | Oracle Database | **Azure Database for PostgreSQL** |
-| IDs | Secuencias Oracle | Identidades/serial del motor destino |
-| Historial | Trigger PL/SQL | Trigger del motor destino o lógica en la app |
+| Lenguaje/runtime | Java 8, Spring Boot 2.7 | **Java 21, Spring Boot 3.5** (implementado, tarea `001`) |
+| Base de datos | Oracle Database | **Azure Database for PostgreSQL Flexible Server** (implementado, tarea `002`) |
+| IDs | Secuencias Oracle | Secuencias nativas de PostgreSQL (`employees_seq`/`departments_seq`) |
+| Historial | Trigger PL/SQL | Función de trigger PL/pgSQL `SECURITY DEFINER` |
 
 ## Ejemplos conceptuales de consultas asistidas por IA (futuro)
 

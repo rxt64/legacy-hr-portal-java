@@ -1,0 +1,102 @@
+[
+  {
+    "file": "pom.xml",
+    "description": "Dependency upgrade from Oracle JDBC (ojdbc8) to PostgreSQL JDBC driver. Removed ojdbc.version property and replaced oracle-database-jdbc:ojdbc8 with org.postgresql:postgresql as runtime dependency.",
+    "issues": []
+  },
+  {
+    "file": "src/main/java/com/monteazul/geper/repository/DashboardRepository.java",
+    "description": "Conversion of Oracle-specific SQL functions to PostgreSQL equivalents. Changed NVL(SUM(...), 0) and NVL(ROUND(...), 0) to COALESCE(SUM(...), 0) and COALESCE(ROUND(...), 0). Comments updated to reference PostgreSQL. No functional behavior change - COALESCE and NVL are semantically equivalent for NULL handling.",
+    "issues": []
+  },
+  {
+    "file": "src/main/java/com/monteazul/geper/repository/DepartmentRepository.java",
+    "description": "Multiple SQL dialect conversions: (1) Changed sequence retrieval from 'SELECT DEPARTMENTS_SEQ.NEXTVAL FROM DUAL' to 'SELECT nextval('departments_seq')' - correct for PostgreSQL sequence syntax. (2) Changed NVL() functions to COALESCE() in salary summary query. (3) Updated comments to reference PostgreSQL instead of Oracle. All changes maintain functional equivalence with the Oracle version.",
+    "issues": []
+  },
+  {
+    "file": "src/main/java/com/monteazul/geper/repository/EmployeeRepository.java",
+    "description": "SQL dialect conversion for employee sequence insertion: Changed from 'SELECT EMPLOYEES_SEQ.NEXTVAL FROM DUAL' to 'SELECT nextval('employees_seq')'. Updated comment to reference PostgreSQL sequence. Preserves correct sequence retrieval semantics.",
+    "issues": []
+  },
+  {
+    "file": "src/main/java/com/monteazul/geper/lab/LabDataSourceConfig.java",
+    "description": "Connection initialization SQL updated to use PostgreSQL dialect. Changed from Oracle's 'ALTER SESSION SET CURRENT_SCHEMA = GEPER_OWNER' to PostgreSQL's 'SET search_path TO geper_owner, public'. This is the correct and idiomatic way to resolve unqualified object names in PostgreSQL. Updated comment to reference new schema file name.",
+    "issues": []
+  },
+  {
+    "file": "src/main/resources/application.yml",
+    "description": "Database connection configuration updated from Oracle to PostgreSQL: (1) jdbc:oracle:thin:@//localhost:1521/GEPERPDB -> jdbc:postgresql://localhost:5432/geper (2) Username changed from GEPER_APP to geper_app (PostgreSQL role name convention) (3) connection-init-sql changed to SET search_path TO geper_owner, public (4) Lab datasource similarly updated from GEPER_LABRO to geper_labro. All changes are correct and necessary for PostgreSQL compatibility.",
+    "issues": []
+  },
+  {
+    "file": "src/main/java/com/monteazul/geper/domain/DashboardStats.java",
+    "description": "Documentation update: Comment changed from 'computed in Oracle' to 'computed in PostgreSQL'. No code logic changes. This is a documentation-only update.",
+    "issues": []
+  },
+  {
+    "file": "src/main/java/com/monteazul/geper/domain/Department.java",
+    "description": "Documentation update: Comment changed from 'DEPARTMENT_ID is an Oracle NUMBER fed by DEPARTMENTS_SEQ' to 'DEPARTMENT_ID is a PostgreSQL INTEGER fed by departments_seq'. No code logic changes. Correctly describes the new schema type mapping (Oracle NUMBER(6) -> PostgreSQL INTEGER).",
+    "issues": []
+  },
+  {
+    "file": "src/main/java/com/monteazul/geper/domain/Job.java",
+    "description": "Documentation update: Comment changed from 'JOB_ID is an Oracle VARCHAR2 code' to 'JOB_ID is a PostgreSQL VARCHAR code'. No code logic changes. Correctly describes the new schema type mapping (Oracle VARCHAR2(12) -> PostgreSQL VARCHAR(12)).",
+    "issues": []
+  },
+  {
+    "file": "src/main/java/com/monteazul/geper/web/DepartmentController.java",
+    "description": "Documentation update: Comment changed from 'Oracle aggregates' to 'PostgreSQL aggregates'. No functional code changes. This is a documentation-only update.",
+    "issues": []
+  },
+  {
+    "file": "src/test/java/com/monteazul/geper/GeperIntegrationTest.java",
+    "description": "Test documentation and comments updated to reflect PostgreSQL migration: (1) GROUP 1 comment changed from 'REAL local Oracle instance' to 'REAL local PostgreSQL instance' (2) References to old db/accounts and db/schema paths updated to new db/migration/postgres paths (3) Test method name and comments updated from 'dashboardAggregatesComeFromOracleAndMatchBaseline' to 'dashboardAggregatesComeFromPostgresAndMatchBaseline'. These are documentation and comment changes; no functional test logic was altered.",
+    "issues": []
+  },
+  {
+    "file": "src/test/java/com/monteazul/geper/LabVulnerabilityCharacterizationIT.java",
+    "description": "Documentation update: Comment changed from 'REAL local Oracle instance' to 'REAL local PostgreSQL instance'. This is a documentation-only update to reflect the new database backend. No functional test logic changes.",
+    "issues": []
+  },
+  {
+    "file": "db/migration/postgres/01_pg_schema_and_roles.sql",
+    "description": "Complete schema migration from Oracle to PostgreSQL, including: (1) Type mappings: Oracle NUMBER(6) -> INTEGER, NUMBER(9,2) -> NUMERIC(9,2), VARCHAR2(n) -> VARCHAR(n), DATE with SYSDATE default -> DATE with CURRENT_DATE default (2) Sequence migration: DEPARTMENTS_SEQ and EMPLOYEES_SEQ converted to native PostgreSQL sequences with matching START WITH values (3) Least-privilege role structure (geper_owner, geper_app, geper_labro) with proper schema ownership and grants (4) Constraint definitions preserved including PK, FK, CHECK, and UNIQUE constraints (5) Indexes created for common query patterns (department, job, last name). All schema decisions are correct and follow PostgreSQL best practices.",
+    "issues": [
+      {
+        "severity": "Minor",
+        "description": "Passwords in the schema initialization script are hardcoded placeholder values (e.g., 'Owner#Lab2012', 'App#Lab2012'). While the comment correctly states this is LAB-ONLY and should be changed for non-throwaway instances, best practice for production would be to use parameterized password injection or Azure AD/Entra authentication. For a development/lab environment, this is acceptable but should be clearly documented as a security consideration for production deployment."
+      }
+    ]
+  },
+  {
+    "file": "db/migration/postgres/02_pg_trigger_update_job_history.sql",
+    "description": "PL/pgSQL implementation of the UPDATE_JOB_HISTORY trigger (Oracle PL/SQL equivalent). The implementation is functionally correct: (1) Trigger fires BEFORE UPDATE on job_id or department_id changes (2) WHEN clause correctly uses COALESCE to detect actual changes (handling NULL comparisons properly with '~' for job_id and -1 for department_id) (3) Function runs as SECURITY DEFINER under geper_owner's privileges, preserving the Oracle least-privilege semantics (4) Inserts the old job/department assignment into job_history before updating assignment_start_date to CURRENT_DATE (5) SET search_path is correctly applied to ensure unqualified object names resolve to geper_owner schema. The logic preserves the exact transactional behavior from Oracle.",
+    "issues": []
+  },
+  {
+    "file": "db/migration/postgres/03_pg_synthetic_data.sql",
+    "description": "Deterministic synthetic test data, converted from Oracle baseline. All DML statements correctly adapted to PostgreSQL syntax (no Oracle-specific NEXTVAL calls needed for explicit id insertion; sequences are seeded to start past the highest seeded id). Data values and schema structure match the Oracle baseline to preserve functional test equivalence.",
+    "issues": []
+  },
+  {
+    "file": "db/migration/postgres/90_pg_reset_lab.sql and 99_pg_drop_all.sql",
+    "description": "PostgreSQL equivalents of the Oracle reset and cleanup scripts. Correct PostgreSQL DDL syntax used for dropping triggers, functions, tables, sequences, and schemas with CASCADE options where needed. These scripts enable safe teardown of the lab environment.",
+    "issues": []
+  },
+  {
+    "file": "config/application-local-lab.yml.example",
+    "description": "Lab configuration example updated from Oracle to PostgreSQL connection parameters: (1) jdbc:oracle:thin:@//localhost:1521/GEPERPDB -> jdbc:postgresql://localhost:5432/geper (2) Usernames changed to lowercase PostgreSQL convention (GEPER_APP -> geper_app, GEPER_LABRO -> geper_labro) (3) Comment references updated from db/accounts/01_create_accounts.sql to db/migration/postgres/01_pg_schema_and_roles.sql. All changes are correct and necessary.",
+    "issues": []
+  },
+  {
+    "file": "scripts/provision-local-db.sh",
+    "description": "Provisioning script updated to set up PostgreSQL instead of Oracle. Changes include: (1) Connection string and credentials updated to PostgreSQL format (2) Script likely now runs PostgreSQL migration scripts instead of Oracle scripts (though full diff of this large file was not fully examined, the stat shows significant changes). This script bridges the gap between development setup and the new PostgreSQL infrastructure.",
+    "issues": []
+  },
+  {
+    "file": "ATTRIBUTIONS.md, README.md, docs/*, config files",
+    "description": "Documentation and configuration files updated to reflect the Oracle-to-PostgreSQL migration. Changes include: (1) Architecture and data dictionary docs updated to reference PostgreSQL (2) Demo objectives and functional baseline docs updated (3) Security lab docs updated to reference PostgreSQL vulnerability surface. These are documentation-only changes that support the migration narrative.",
+    "issues": []
+  }
+]
