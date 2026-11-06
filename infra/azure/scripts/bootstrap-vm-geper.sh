@@ -105,7 +105,7 @@ chmod 750 "$CRED_DIR"
 
 gen_pw() {
   local rand
-  rand=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 12)
+  rand=$(openssl rand -hex 6)
   echo "Gp${rand}#9a"
 }
 
@@ -144,24 +144,22 @@ if [ ! -d "${ORADATA_DIR}/${ORACLE_SID}" ] && [ ! -d "${ORADATA_DIR}/$(echo "$OR
     lsnrctl start >/dev/null 2>&1 || true; \
     dbca -silent -createDatabase \
       -templateName General_Purpose.dbc \
-      -gdbname ${ORACLE_SID} \
+      -gdbName ${ORACLE_SID} \
       -sid ${ORACLE_SID} \
-      -responseFile NO_VALUE \
-      -characterSet AL32UTF8 \
-      -SysPassword \"${ORA_SYS_PW}\" \
-      -SystemPassword \"${ORA_SYS_PW}\" \
       -createAsContainerDatabase true \
       -numberOfPDBs 1 \
       -pdbName ${PDB_NAME} \
       -pdbAdminPassword \"${ORA_SYS_PW}\" \
+      -sysPassword \"${ORA_SYS_PW}\" \
+      -systemPassword \"${ORA_SYS_PW}\" \
+      -characterSet AL32UTF8 \
       -databaseType MULTIPURPOSE \
-      -automaticMemoryManagement false \
+      -memoryMgmtType AUTO_SGA \
       -totalMemory 4096 \
       -storageType FS \
       -datafileDestination \"${ORADATA_DIR}\" \
       -redoLogFileSize 50 \
-      -emConfiguration NONE \
-      -ignorePreReqs"
+      -emConfiguration NONE"
 fi
 
 if ! grep -q "^${ORACLE_SID}:" /etc/oratab 2>/dev/null; then
@@ -170,20 +168,65 @@ else
   sed -i "s|^${ORACLE_SID}:${ORACLE_HOME}:.*|${ORACLE_SID}:${ORACLE_HOME}:Y|" /etc/oratab
 fi
 
+cat >/usr/local/sbin/oracle-cdb-ctl.sh <<'EOCTL'
+#!/usr/bin/env bash
+set -euo pipefail
+ORACLE_BASE="/u01/app/oracle"
+ORACLE_HOME="/u01/app/oracle/product/12.2.0/dbhome_1"
+ORACLE_SID="ORCL12C"
+PDB_NAME="GEPERPDB"
+export ORACLE_BASE ORACLE_HOME ORACLE_SID PATH="${ORACLE_HOME}/bin:${PATH}"
+
+case "${1:-start}" in
+  start)
+    "${ORACLE_HOME}/bin/lsnrctl" status >/dev/null 2>&1 || "${ORACLE_HOME}/bin/lsnrctl" start
+    if ! pgrep -f "ora_pmon_${ORACLE_SID}" >/dev/null 2>&1; then
+      "${ORACLE_HOME}/bin/sqlplus" -s / as sysdba <<EOSQL
+STARTUP;
+EOSQL
+    fi
+    "${ORACLE_HOME}/bin/sqlplus" -s / as sysdba <<EOSQL
+DECLARE
+  v_mode VARCHAR2(32);
+BEGIN
+  SELECT open_mode INTO v_mode FROM v\$pdbs WHERE name = '${PDB_NAME}';
+  IF v_mode <> 'READ WRITE' THEN
+    EXECUTE IMMEDIATE 'ALTER PLUGGABLE DATABASE ${PDB_NAME} OPEN READ WRITE';
+  END IF;
+  EXECUTE IMMEDIATE 'ALTER PLUGGABLE DATABASE ${PDB_NAME} SAVE STATE';
+END;
+/
+ALTER SYSTEM REGISTER;
+EXIT;
+EOSQL
+    ;;
+  stop)
+    if pgrep -f "ora_pmon_${ORACLE_SID}" >/dev/null 2>&1; then
+      "${ORACLE_HOME}/bin/sqlplus" -s / as sysdba <<EOSQL
+SHUTDOWN IMMEDIATE;
+EXIT;
+EOSQL
+    fi
+    "${ORACLE_HOME}/bin/lsnrctl" stop || true
+    ;;
+esac
+EOCTL
+chmod 755 /usr/local/sbin/oracle-cdb-ctl.sh
+
 cat >/etc/systemd/system/oracle-cdb.service <<EOF
 [Unit]
 Description=Oracle Database 12c R2 (${ORACLE_SID} + ${PDB_NAME}) and Loopback Listener
 After=network.target local-fs.target
 
 [Service]
-Type=forking
+Type=oneshot
 User=oracle
 Group=oinstall
 Environment="ORACLE_BASE=${ORACLE_BASE}"
 Environment="ORACLE_HOME=${ORACLE_HOME}"
 Environment="ORACLE_SID=${ORACLE_SID}"
-ExecStart=/bin/bash -c '${ORACLE_HOME}/bin/lsnrctl start && ${ORACLE_HOME}/bin/sqlplus -s / as sysdba <<< "STARTUP; ALTER PLUGGABLE DATABASE ${PDB_NAME} OPEN; ALTER PLUGGABLE DATABASE ${PDB_NAME} SAVE STATE; EXIT;"'
-ExecStop=/bin/bash -c '${ORACLE_HOME}/bin/sqlplus -s / as sysdba <<< "SHUTDOWN IMMEDIATE; EXIT;" && ${ORACLE_HOME}/bin/lsnrctl stop'
+ExecStart=/usr/local/sbin/oracle-cdb-ctl.sh start
+ExecStop=/usr/local/sbin/oracle-cdb-ctl.sh stop
 TimeoutStartSec=300
 TimeoutStopSec=180
 RemainAfterExit=yes
@@ -200,8 +243,16 @@ echo "==> [6/8] Aprovisionando cuentas (GEPER_OWNER, GEPER_APP, GEPER_LABRO), es
 su - oracle -c "export ORACLE_BASE=${ORACLE_BASE} ORACLE_HOME=${ORACLE_HOME} ORACLE_SID=${ORACLE_SID} PATH=${ORACLE_HOME}/bin:\$PATH; \
   sqlplus -s / as sysdba <<'EOSQL'
 WHENEVER SQLERROR EXIT SQL.SQLCODE
-ALTER PLUGGABLE DATABASE ${PDB_NAME} OPEN READ WRITE;
-ALTER PLUGGABLE DATABASE ${PDB_NAME} SAVE STATE;
+DECLARE
+  v_mode VARCHAR2(32);
+BEGIN
+  SELECT open_mode INTO v_mode FROM v\$pdbs WHERE name = '${PDB_NAME}';
+  IF v_mode <> 'READ WRITE' THEN
+    EXECUTE IMMEDIATE 'ALTER PLUGGABLE DATABASE ${PDB_NAME} OPEN READ WRITE';
+  END IF;
+  EXECUTE IMMEDIATE 'ALTER PLUGGABLE DATABASE ${PDB_NAME} SAVE STATE';
+END;
+/
 ALTER SESSION SET CONTAINER = ${PDB_NAME};
 
 DECLARE
