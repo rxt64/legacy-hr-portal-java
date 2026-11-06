@@ -71,7 +71,8 @@
         "passBuild": "true",
         "passUnitTests": "true"
       },
-      "dependencies": ["002-transform-oracle-to-postgresql"]
+      "dependencies": ["002-transform-oracle-to-postgresql"],
+      "status": "started"
     },
     {
       "type": "integrationTest",
