@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.18</version>
+        <version>3.5.0</version>
         <relativePath/>
     </parent>
 
@@ -29,11 +29,10 @@
     <description>Registro Central de Personal - aplicacion legacy ficticia de demostracion</description>
 
     <properties>
-        <!-- Legacy target: Java 8 bytecode. The build JDK may be newer;
-             the compiler release is pinned to 8 to preserve the baseline. -->
-        <java.version>1.8</java.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <!-- Modernized target: Java 21 bytecode, Spring Boot 3.5 (Jakarta EE 10). -->
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <ojdbc.version>12.2.0.1</ojdbc.version>
     </properties>

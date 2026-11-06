@@ -8,20 +8,20 @@
     <div class="panel">
         <h2>SECURITY-LAB JAVA-SQLI-01 &mdash; Inyecci&oacute;n SQL</h2>
         <div class="body">
-            <p>B&uacute;squeda por apellido. El t&eacute;rmino se concatena directamente en el SQL y se ejecuta con un
-               <code>Statement</code> contra la cuenta de solo lectura <code>GEPER_LABRO</code>.</p>
+            <p>B&uacute;squeda por apellido. El t&eacute;rmino se vincula de forma segura mediante un
+               <code>PreparedStatement</code> (JAVA-SQLI-01 remediado) contra la cuenta de solo lectura <code>GEPER_LABRO</code>.</p>
             <form class="dense" method="get" th:action="@{/lab/sqli}">
                 <label>Apellido contiene</label>
                 <input type="text" name="term" th:value="${term}" size="40"/>
                 <input type="submit" value="Buscar"/>
             </form>
             <p class="muted">Reproducci&oacute;n inocua: pruebe <code>mora</code> (filtra a 2 filas) y luego
-               <code>x') OR 1=1 --</code> (ampl&iacute;a el resultado a todo el personal). Sin modificar datos.</p>
+               <code>x') OR 1=1 --</code> (el payload ya no altera la consulta; se trata como texto literal).</p>
         </div>
     </div>
 
     <div class="panel" th:if="${sql}">
-        <h2>SQL enviado a Oracle</h2>
+        <h2>SQL parametrizado enviado a la base de datos</h2>
         <div class="body"><code class="sql" th:text="${sql}"></code></div>
     </div>
 

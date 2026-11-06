@@ -39,7 +39,7 @@ public class LabController {
     }
 
     // ---------------------------------------------------------------
-    // SECURITY-LAB JAVA-SQLI-01 — SQL injection in a JDBC Statement
+    // JAVA-SQLI-01 (remediated) — parameterized PreparedStatement search
     // ---------------------------------------------------------------
     @GetMapping("/sqli")
     public String sqli(@RequestParam(required = false, defaultValue = "") String term, Model model) {
@@ -54,7 +54,7 @@ public class LabController {
     }
 
     // ---------------------------------------------------------------
-    // SECURITY-LAB JAVA-XSS-01 — stored XSS in employee observations
+    // JAVA-XSS-01 (remediated) — escaped rendering of observations
     // ---------------------------------------------------------------
     @GetMapping("/xss")
     public String xssForm(@RequestParam(required = false) Integer employeeId, Model model) {
@@ -76,9 +76,10 @@ public class LabController {
     }
 
     /**
-     * Vulnerable rendering: the stored observation is emitted WITHOUT HTML
-     * escaping (lab/view.html uses th:utext). The normal employee card
-     * (employees/detail.html) renders the same field escaped with th:text.
+     * Rendering is now contextually escaped: the stored observation is
+     * emitted WITH HTML escaping (lab/view.html uses th:text). The normal
+     * employee card (employees/detail.html) renders the same field escaped
+     * with th:text as well (JAVA-XSS-01 remediated).
      */
     @GetMapping("/xss/view/{employeeId}")
     public String xssView(@PathVariable int employeeId, Model model) {
