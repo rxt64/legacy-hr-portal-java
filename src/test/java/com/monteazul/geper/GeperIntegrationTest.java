@@ -110,7 +110,7 @@ class GeperIntegrationTest {
         d.setLocation("Monte Azul Central");
         int id = catalog.createDepartment(d);
         assertThat(id).isGreaterThanOrEqualTo(70);
-        assertThat(catalog.findDepartment(id)).isNotNull();
+        assertThat(catalog.department(id)).isNotNull();
     }
 
     @Test
