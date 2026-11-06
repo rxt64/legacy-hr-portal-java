@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.0</version>
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -34,6 +34,14 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- CVE remediation (task 003): override transitive dependency versions
+             managed by the Spring Boot 3.5.x BOM that still lag behind the
+             patched releases identified by the CVE scan. -->
+        <postgresql.version>42.7.12</postgresql.version>
+        <log4j2.version>2.25.5</log4j2.version>
+        <jackson-bom.version>2.21.8</jackson-bom.version>
+        <tomcat.version>10.1.61</tomcat.version>
     </properties>
 
     <dependencies>
