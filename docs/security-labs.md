@@ -150,7 +150,8 @@ Tres grupos separados (ver `src/test/java/com/monteazul/geper`):
 
 ### Resultado de ejecución registrado
 
-Ejecutado el 2026-11-06 contra Oracle Free 23c local (`gvenzl/oracle-free`):
+Ejecutado el 2026-11-06 contra Oracle Free 23c local (`gvenzl/oracle-free`),
+y re-ejecutado tras verificar la app en vivo (22/22):
 
 ```
 GeperIntegrationTest .................. Tests run: 9,  Failures: 0, Errors: 0
@@ -158,4 +159,14 @@ LabConfigurationTest .................. Tests run: 4,  Failures: 0, Errors: 0
 LabLoopbackFilterTest ................. Tests run: 3,  Failures: 0, Errors: 0
 LabSearchSqlTest ...................... Tests run: 2,  Failures: 0, Errors: 0
 LabVulnerabilityCharacterizationIT .... Tests run: 2,  Failures: 0, Errors: 0
+LabsEnabledMainDatasourceIT ........... Tests run: 2,  Failures: 0, Errors: 0
 ```
+
+> La verificación en vivo (labs habilitados) detectó y corrigió dos defectos
+> **no intencionales** (no son parte del laboratorio): (1) al habilitar los
+> labs, el segundo `DataSource` desactivaba el principal autoconfigurado, por
+> lo que la app usaba la cuenta de solo lectura — corregido marcando el
+> datasource de la app como `@Primary` (`config/AppDataSourceConfig`); (2) la
+> plantilla `lab/sqli.html` evaluaba una clave ausente del mapa de filas —
+> corregido con guardas `containsKey`. Ambos quedaron cubiertos por
+> `LabsEnabledMainDatasourceIT`.
