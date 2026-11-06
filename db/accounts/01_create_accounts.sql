@@ -19,34 +19,34 @@
 -- =====================================================================
 
 -- Connect to the application pluggable database before running, e.g.:
---   ALTER SESSION SET CONTAINER = FREEPDB1;
+--   ALTER SESSION SET CONTAINER = GEPERPDB;
 
--- ---------------------------------------------------------------------
--- Schema owner: owns all objects and the synthetic data.
--- Not used as a runtime account.
--- ---------------------------------------------------------------------
-CREATE USER GEPER_OWNER IDENTIFIED BY "Owner#Lab2012";
-GRANT CREATE SESSION, CREATE TABLE, CREATE SEQUENCE, CREATE TRIGGER,
-      CREATE VIEW, CREATE SYNONYM TO GEPER_OWNER;
-ALTER USER GEPER_OWNER QUOTA UNLIMITED ON USERS;
+DECLARE
+  v_cnt NUMBER;
+BEGIN
+  -- Ensure GEPER_OWNER exists (idempotent on Oracle 12c R2 / 19c / 23c).
+  SELECT COUNT(*) INTO v_cnt FROM all_users WHERE username = 'GEPER_OWNER';
+  IF v_cnt = 0 THEN
+    EXECUTE IMMEDIATE 'CREATE USER GEPER_OWNER IDENTIFIED BY "Owner#Lab2012" DEFAULT TABLESPACE USERS TEMPORARY TABLESPACE TEMP';
+  END IF;
+  EXECUTE IMMEDIATE 'GRANT CREATE SESSION, CREATE TABLE, CREATE SEQUENCE, CREATE TRIGGER, CREATE VIEW, CREATE SYNONYM TO GEPER_OWNER';
+  EXECUTE IMMEDIATE 'ALTER USER GEPER_OWNER QUOTA UNLIMITED ON USERS';
 
--- ---------------------------------------------------------------------
--- Application runtime account: least privilege.
--- Can connect and perform DML through synonyms, but owns no objects and
--- cannot create or drop them. JOB_HISTORY rows are written by the
--- definer-rights trigger owned by GEPER_OWNER, so GEPER_APP is NOT
--- granted INSERT on JOB_HISTORY.
--- ---------------------------------------------------------------------
-CREATE USER GEPER_APP IDENTIFIED BY "App#Lab2012";
-GRANT CREATE SESSION TO GEPER_APP;
+  -- Application runtime account: least privilege.
+  SELECT COUNT(*) INTO v_cnt FROM all_users WHERE username = 'GEPER_APP';
+  IF v_cnt = 0 THEN
+    EXECUTE IMMEDIATE 'CREATE USER GEPER_APP IDENTIFIED BY "App#Lab2012" DEFAULT TABLESPACE USERS TEMPORARY TABLESPACE TEMP';
+  END IF;
+  EXECUTE IMMEDIATE 'GRANT CREATE SESSION TO GEPER_APP';
 
--- ---------------------------------------------------------------------
--- Vulnerability-lab read-only account.
--- Used ONLY by the SECURITY-LAB SQL-injection datasource. SELECT only,
--- on the synthetic personnel data. No DML, no DDL, no other objects.
--- ---------------------------------------------------------------------
-CREATE USER GEPER_LABRO IDENTIFIED BY "LabRo#Lab2012";
-GRANT CREATE SESSION TO GEPER_LABRO;
+  -- Vulnerability-lab read-only account.
+  SELECT COUNT(*) INTO v_cnt FROM all_users WHERE username = 'GEPER_LABRO';
+  IF v_cnt = 0 THEN
+    EXECUTE IMMEDIATE 'CREATE USER GEPER_LABRO IDENTIFIED BY "LabRo#Lab2012" DEFAULT TABLESPACE USERS TEMPORARY TABLESPACE TEMP';
+  END IF;
+  EXECUTE IMMEDIATE 'GRANT CREATE SESSION TO GEPER_LABRO';
+END;
+/
 
 -- Object-level grants are issued by GEPER_OWNER in 02_schema.sql, after
 -- the tables exist.

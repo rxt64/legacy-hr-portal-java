@@ -26,3 +26,12 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Azure local parameter overrides, secrets & restricted Oracle media (never commit)
+*.local.bicepparam
+*.private.bicepparam
+*.secrets.json
+*.zip
+*.rpm
+*.pem
+*.key

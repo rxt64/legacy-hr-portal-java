@@ -21,7 +21,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+    url: jdbc:oracle:thin:@//localhost:1521/GEPERPDB
     username: GEPER_APP
     password: App#Lab2012
 
@@ -29,6 +29,6 @@ geper:
   labs:
     enabled: true
     datasource:
-      url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+      url: jdbc:oracle:thin:@//localhost:1521/GEPERPDB
       username: GEPER_LABRO
       password: LabRo#Lab2012

@@ -104,6 +104,17 @@ class GeperIntegrationTest {
 
     @Test
     @Transactional
+    void createDepartmentUsesSequenceAndPersists() {
+        com.monteazul.geper.domain.Department d = new com.monteazul.geper.domain.Department();
+        d.setDepartmentName("Auditoria Interna Temporal");
+        d.setLocation("Monte Azul Central");
+        int id = catalog.createDepartment(d);
+        assertThat(id).isGreaterThanOrEqualTo(70);
+        assertThat(catalog.findDepartment(id)).isNotNull();
+    }
+
+    @Test
+    @Transactional
     void changingAssignmentCreatesJobHistoryViaTrigger() {
         int emp = 126; // OPER / dept 60
         int before = employeeRepository.findHistory(emp).size();

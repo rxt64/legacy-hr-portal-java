@@ -88,8 +88,9 @@ CREATE TABLE JOB_HISTORY (
 -- ------------------------------------------------------------------
 -- Sequences (Oracle-specific; a migration target without sequences must
 -- replace these with identity columns or an equivalent mechanism).
+-- Seeded departments occupy IDs 10..60, so DEPARTMENTS_SEQ starts at 70.
 -- ------------------------------------------------------------------
-CREATE SEQUENCE DEPARTMENTS_SEQ START WITH 50 INCREMENT BY 10 NOCACHE NOCYCLE;
+CREATE SEQUENCE DEPARTMENTS_SEQ START WITH 70 INCREMENT BY 10 NOCACHE NOCYCLE;
 CREATE SEQUENCE EMPLOYEES_SEQ   START WITH 1000 INCREMENT BY 1 NOCACHE NOCYCLE;
 
 -- ------------------------------------------------------------------

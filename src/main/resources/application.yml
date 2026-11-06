@@ -16,7 +16,7 @@ spring:
   # resolved to the owner via the connection-init SQL; GEPER_APP still holds
   # only the grants issued in db/schema/02_schema.sql.
   datasource:
-    url: ${GEPER_DB_URL:jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
+    url: ${GEPER_DB_URL:jdbc:oracle:thin:@//localhost:1521/GEPERPDB}
     username: ${GEPER_DB_USER:GEPER_APP}
     password: ${GEPER_DB_PASSWORD:}
     hikari:
@@ -30,7 +30,7 @@ geper:
   labs:
     enabled: ${ENABLE_VULNERABILITY_LABS:false}
     datasource:
-      url: ${GEPER_LAB_DB_URL:jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
+      url: ${GEPER_LAB_DB_URL:jdbc:oracle:thin:@//localhost:1521/GEPERPDB}
       username: ${GEPER_LAB_DB_USER:GEPER_LABRO}
       password: ${GEPER_LAB_DB_PASSWORD:}
 
