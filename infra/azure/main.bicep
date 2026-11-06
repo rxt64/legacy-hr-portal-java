@@ -69,6 +69,15 @@ param sshPublicKey string = ''
 @secure()
 param adminPassword string = ''
 
+@description('Habilitar publicación de GEPER en el perfil compartido de Azure Front Door Standard.')
+param enableFrontDoor bool = true
+
+@description('Nombre del perfil compartido existente de Azure Front Door Standard (vacío usa el nombre determinista del grupo de recursos).')
+param existingFrontDoorProfileName string = ''
+
+@description('Nombre del endpoint de Azure Front Door para GEPER (vacío usa el nombre determinista).')
+param geperFrontDoorEndpointName string = ''
+
 @description('Tags genéricos aplicados a todos los recursos de GEPER.')
 param tags object = {
   project: 'legacy-modernization-lab'
@@ -88,6 +97,7 @@ module geperNsg 'modules/geper-nsg.bicep' = {
     location: location
     nsgName: 'nsg-${geperVmName}'
     presenterAllowedCidr: presenterAllowedCidr
+    enableFrontDoorBackend: enableFrontDoor
     tags: union(tags, {
       application: 'GEPER'
     })
@@ -124,9 +134,28 @@ module geperVm 'modules/geper-vm.bicep' = {
   }
 }
 
+var effectiveFrontDoorProfileName = !empty(existingFrontDoorProfileName) ? existingFrontDoorProfileName : 'afd-legacy-lab-${take(uniqueString(existingRg.id), 8)}'
+var effectiveGeperEndpointName = !empty(geperFrontDoorEndpointName) ? geperFrontDoorEndpointName : 'geper-lab-${take(uniqueString(existingRg.id), 8)}'
+
+module geperFrontDoor 'modules/geper-frontdoor.bicep' = if (enableFrontDoor && enablePublicIp) {
+  name: 'deploy-geper-frontdoor'
+  scope: existingRg
+  params: {
+    existingFrontDoorProfileName: effectiveFrontDoorProfileName
+    geperEndpointName: effectiveGeperEndpointName
+    geperOriginHostName: geperVm.outputs.publicIpFqdn
+    geperOriginHttpPort: 8080
+    tags: tags
+  }
+}
+
 output resourceGroupName string = existingRg.name
 output location string = location
 output geperVmName string = geperVm.outputs.vmName
 output geperPrivateIp string = geperVm.outputs.privateIpAddress
 output geperPublicIp string = geperVm.outputs.publicIpAddress
+output geperPublicFqdn string = geperVm.outputs.publicIpFqdn
 output geperDataDiskId string = geperVm.outputs.dataDiskId
+output frontDoorProfileName string = (enableFrontDoor && enablePublicIp) ? geperFrontDoor!.outputs.frontDoorProfileName : ''
+output geperFrontDoorEndpointHostName string = (enableFrontDoor && enablePublicIp) ? geperFrontDoor!.outputs.geperEndpointHostName : ''
+output geperFrontDoorUrl string = (enableFrontDoor && enablePublicIp) ? geperFrontDoor!.outputs.geperEndpointUrl : ''

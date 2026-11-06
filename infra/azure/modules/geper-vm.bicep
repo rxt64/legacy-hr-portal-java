@@ -90,6 +90,9 @@ resource pip 'Microsoft.Network/publicIPAddresses@2023-11-01' = if (enablePublic
   properties: {
     publicIPAllocationMethod: 'Static'
     publicIPAddressVersion: 'IPv4'
+    dnsSettings: {
+      domainNameLabel: 'geper-vm-${take(uniqueString(resourceGroup().id, vmName), 8)}'
+    }
   }
 }
 
@@ -218,5 +221,6 @@ output vmId string = vm.id
 output vmName string = vm.name
 output privateIpAddress string = nic.properties.ipConfigurations[0].properties.privateIPAddress
 output publicIpAddress string = enablePublicIp ? pip!.properties.ipAddress : ''
+output publicIpFqdn string = enablePublicIp ? pip!.properties.dnsSettings.fqdn : ''
 output dataDiskId string = oracleDataDisk.id
 output principalId string = vm.identity.principalId

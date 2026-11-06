@@ -119,6 +119,7 @@ repositorio.
 
 ## 6. Documentación
 
+- [infra/azure/README.md](infra/azure/README.md) — **IaC en Bicep (`mexicocentral`), Oracle 12c R2, Azure Front Door y operación en Azure**
 - [docs/architecture.md](docs/architecture.md) — arquitectura y acoplamientos
 - [docs/data-dictionary.md](docs/data-dictionary.md) — diccionario de datos
 - [docs/functional-baseline.md](docs/functional-baseline.md) — línea base verificable

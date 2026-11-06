@@ -10,6 +10,9 @@ param nsgName string
 @description('CIDR IPv4 público del presentador para SSH (puerto 22). Vacío deshabilita la regla de entrada SSH desde Internet. Prohibido 0.0.0.0/0 o *.')
 param presenterAllowedCidr string = ''
 
+@description('Permitir tráfico entrante desde el Service Tag AzureFrontDoor.Backend hacia el puerto 8080 de GEPER.')
+param enableFrontDoorBackend bool = true
+
 @description('Tags aplicados al NSG.')
 param tags object = {}
 
@@ -27,6 +30,23 @@ var sshAllowRules = hasValidPresenterCidr ? [
       destinationAddressPrefix: '*'
       access: 'Allow'
       priority: 100
+      direction: 'Inbound'
+    }
+  }
+] : []
+
+var frontDoorAllowRules = enableFrontDoorBackend ? [
+  {
+    name: 'Allow-AzureFrontDoor-HTTP-Inbound'
+    properties: {
+      description: 'Permite trafico HTTP (8080) entrante exclusivamente desde Azure Front Door (Service Tag AzureFrontDoor.Backend).'
+      protocol: 'Tcp'
+      sourcePortRange: '*'
+      destinationPortRange: '8080'
+      sourceAddressPrefix: 'AzureFrontDoor.Backend'
+      destinationAddressPrefix: '*'
+      access: 'Allow'
+      priority: 150
       direction: 'Inbound'
     }
   }
@@ -75,7 +95,7 @@ resource geperNsg 'Microsoft.Network/networkSecurityGroups@2023-11-01' = {
   location: location
   tags: tags
   properties: {
-    securityRules: concat(sshAllowRules, baseDenyRules)
+    securityRules: concat(sshAllowRules, frontDoorAllowRules, baseDenyRules)
   }
 }
 

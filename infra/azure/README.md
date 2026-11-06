@@ -14,10 +14,10 @@ flowchart LR
         subgraph SharedVNet["vnet-legacy-lab-mxc (10.42.0.0/16) [existing]"]
             SnetSigea["snet-sigea (10.42.1.0/24)<br/>SIGEA (.NET 4.8 + SQL 2022)"]
             subgraph SnetGeper["snet-geper (10.42.2.0/24) [existing]"]
-                NSGGeper["nsg-vm-geper-ora<br/>Allow SSH (22) solo CIDR presentador<br/>Deny Web (80/443/8080) y Oracle (1521/5500) desde Internet"]
+                NSGGeper["nsg-vm-geper-ora<br/>Allow 8080 solo desde AzureFrontDoor.Backend (prio 150)<br/>Allow SSH (22) solo CIDR presentador<br/>Deny Web (80/443/8080) y Oracle (1521/5500) directo desde Internet"]
                 NICGeper["nic-vm-geper-ora (10.42.2.4)"]
                 subgraph VMGeper["vm-geper-ora (Standard_D4s_v5, Hyper-V Gen1)"]
-                    App["Servicio systemd: geper.service<br/>Usuario sin privilegios: geper<br/>OpenJDK 1.8 + Spring Boot 2.7.18 + ojdbc8 12.2.0.1<br/>Bind: 127.0.0.1:8080"]
+                    App["Servicio systemd: geper.service<br/>Usuario sin privilegios: geper<br/>OpenJDK 1.8 + Spring Boot 2.7.18 + ojdbc8 12.2.0.1<br/>Bind: 0.0.0.0:8080 (relative redirects)"]
                     Ora["Servicio systemd: oracle-cdb.service<br/>Oracle Database 12c Release 2 (12.2.0.1.0)<br/>Listener: 127.0.0.1:1521<br/>CDB: ORCL12C / PDB: GEPERPDB"]
                     App -->|"JDBC Thin (GEPER_APP / GEPER_LABRO)"| Ora
                 end
@@ -25,11 +25,16 @@ flowchart LR
                 DiskOra --> Ora
             end
         end
-        PIPGeper["pip-vm-geper-ora<br/>Standard Static IPv4"] --> NICGeper
+        subgraph SharedAFD["afd-legacy-lab-* (Azure Front Door Standard) [existing]"]
+            EpGeper["Endpoint GEPER: geper-lab-*.b02.azurefd.net<br/>Route /* -> og-geper (HttpOnly:8080, HTTPS Redirect)"]
+        end
+        PIPGeper["pip-vm-geper-ora<br/>geper-vm-*.mexicocentral.cloudapp.azure.com"] --> NICGeper
+        EpGeper -->|"Service Tag: AzureFrontDoor.Backend (TCP 8080)"| PIPGeper
         NSGGeper --> NICGeper
         NICGeper --> VMGeper
     end
 
+    Users["Usuarios / Presentador (HTTPS 443)"] ==> EpGeper
     Presenter["Presentador (IPv4 verificada /32)"] -. "ssh -L 8080:127.0.0.1:8080 geperadmin@<PIP>" .-> PIPGeper
 ```
 
@@ -42,8 +47,9 @@ flowchart LR
 | Archivo / Módulo | Alcance (`targetScope`) | Responsabilidad y recursos administrados |
 |---|---|---|
 | [`main.bicep`](./main.bicep) | `subscription` | Referencia el grupo de recursos existente `rg-legacy-apps-demo-mxc` (`existing`) y coordina los módulos de seguridad de red y cómputo de GEPER en `mexicocentral`. |
-| [`modules/geper-nsg.bicep`](./modules/geper-nsg.bicep) | `resourceGroup` | Crea `nsg-vm-geper-ora`. Permite SSH (`22/TCP`) **únicamente** si `presenterAllowedCidr` contiene un CIDR válido distinto de `0.0.0.0/0` o `*`, y bloquea explícitamente `80`, `443`, `8080`, `1521` y `5500` desde `Internet`. |
-| [`modules/geper-vm.bicep`](./modules/geper-vm.bicep) | `resourceGroup` | Referencia `vnet-legacy-lab-mxc` y `snet-geper` como recursos `existing`. Crea `pip-vm-geper-ora`, `nic-vm-geper-ora`, el disco administrado persistente `disk-vm-geper-ora-oradata` (`LUN 0`, `deleteOption: 'Detach'`) y la VM `vm-geper-ora`. |
+| [`modules/geper-nsg.bicep`](./modules/geper-nsg.bicep) | `resourceGroup` | Crea `nsg-vm-geper-ora`. Permite tráfico entrante en el puerto `8080/TCP` **exclusivamente** desde el Service Tag `AzureFrontDoor.Backend` (prioridad `150`), permite SSH (`22/TCP`) solo si `presenterAllowedCidr` es válido, y bloquea explícitamente `80`, `443`, `8080`, `1521` y `5500` directos desde `Internet` (prioridades `200`/`210`). |
+| [`modules/geper-vm.bicep`](./modules/geper-vm.bicep) | `resourceGroup` | Referencia `vnet-legacy-lab-mxc` y `snet-geper` como recursos `existing`. Crea `pip-vm-geper-ora` con etiqueta DNS (`geper-vm-*.mexicocentral.cloudapp.azure.com`), `nic-vm-geper-ora`, el disco administrado persistente `disk-vm-geper-ora-oradata` (`LUN 0`, `deleteOption: 'Detach'`) y la VM `vm-geper-ora`. |
+| [`modules/geper-frontdoor.bicep`](./modules/geper-frontdoor.bicep) | `resourceGroup` | Referencia el perfil existente de Azure Front Door Standard (`afd-legacy-lab-*`, creado por `legacy-academic-portal-dotnet`) como `existing` y aprovisiona el endpoint HTTPS de GEPER (`geper-lab-*`), el grupo de origen `og-geper` (sondas `GET /` sobre `Http:8080`), el origen `origin-geper-vm` (`geper-vm-*.mexicocentral.cloudapp.azure.com:8080`) y la ruta `route-geper-default` con redirección automática HTTP -> HTTPS. |
 | [`main.bicepparam`](./main.bicepparam) | `subscription` | Plantilla de parámetros sin secretos ni IPs privadas; lee `GEPER_VM_SSH_PUBLIC_KEY` y `GEPER_VM_ADMIN_PASSWORD` desde el entorno. |
 
 ### 2.2 Parámetros principales de `main.bicep`
@@ -67,6 +73,9 @@ flowchart LR
 | `adminUsername` | `string` | `'geperadmin'` | Usuario administrador Linux para administración y túnel SSH. |
 | `sshPublicKey` | `string` | `''` | Clave pública SSH (`ed25519` / `rsa`) configurada en `/home/geperadmin/.ssh/authorized_keys`. |
 | `adminPassword` | `string` (`@secure()`) | `''` | Contraseña administrativa opcional; nunca se incluye en outputs. |
+| `enableFrontDoor` | `bool` | `true` | Registra el endpoint HTTPS de GEPER en el perfil compartido de Azure Front Door Standard y habilita la regla NSG `Allow-AzureFrontDoor-HTTP-Inbound` (`AzureFrontDoor.Backend` -> `8080`). |
+| `existingFrontDoorProfileName` | `string` | `''` | Nombre del perfil existente de Azure Front Door Standard (vacío calcula `afd-legacy-lab-<hash>` del grupo de recursos). |
+| `geperFrontDoorEndpointName` | `string` | `''` | Nombre del endpoint de Azure Front Door para GEPER (vacío calcula `geper-lab-<hash>`). |
 
 ---
 
@@ -92,7 +101,7 @@ El laboratorio soporta dos modalidades para disponer de **Oracle Database 12c Re
 | Archivo | Cambio realizado | Motivo |
 |---|---|---|
 | [`pom.xml`](../../pom.xml) | Pin de `<ojdbc.version>12.2.0.1</ojdbc.version>` (`com.oracle.database.jdbc:ojdbc8:12.2.0.1`) con bytecode target `1.8` | Alinea la versión exacta del driver `ojdbc8` con Oracle Database 12c R2 (`12.2.0.1`) y Java 8 (JDBC 4.2). |
-| [`src/main/resources/application.yml`](../../src/main/resources/application.yml) y [`config/application-local-lab.yml.example`](../../config/application-local-lab.yml.example) | Cambio del servicio PDB predeterminado a `jdbc:oracle:thin:@//localhost:1521/GEPERPDB` | Sustituye el nombre de servicio `FREEPDB1` (propio de Oracle 23c Free) por la PDB dedicada `GEPERPDB` creada en Oracle 12c R2. |
+| [`src/main/resources/application.yml`](../../src/main/resources/application.yml) y [`config/application-local-lab.yml.example`](../../config/application-local-lab.yml.example) | Cambio del servicio PDB predeterminado a `jdbc:oracle:thin:@//localhost:1521/GEPERPDB` y habilitación de `server.tomcat.use-relative-redirects: true` | Sustituye el nombre de servicio `FREEPDB1` por la PDB dedicada `GEPERPDB` en Oracle 12c R2 y emite redirecciones HTTP `302` con `Location` relativo para preservar el esquema HTTPS detrás de Azure Front Door sin necesidad de activar `RemoteIpValve` (manteniendo intacta la validación de `request.getRemoteAddr()` en `LabLoopbackFilter`). |
 | [`db/accounts/01_create_accounts.sql`](../../db/accounts/01_create_accounts.sql) | Bloques PL/SQL idempotentes con asignación explícita de `DEFAULT TABLESPACE USERS TEMPORARY TABLESPACE TEMP` | Garantiza creación repetible de `GEPER_OWNER`, `GEPER_APP` y `GEPER_LABRO` en la PDB `GEPERPDB` de Oracle 12.2 sin errores por usuarios preexistentes. |
 | [`db/schema/02_schema.sql`](../../db/schema/02_schema.sql) y [`db/data/03_synthetic_data.sql`](../../db/data/03_synthetic_data.sql) | `DEPARTMENTS_SEQ START WITH 70` y avance explícito de `DEPARTMENTS_SEQ >= 60` tras cargar los departamentos `10..60` | Corrige colisión de clave primaria (`ORA-00001`) al crear un nuevo departamento desde la aplicación cuando existen los departamentos sembrados `50` y `60`. |
 | [`src/test/java/com/monteazul/geper/GeperIntegrationTest.java`](../../src/test/java/com/monteazul/geper/GeperIntegrationTest.java) | Adición de la prueba transaccional `createDepartmentUsesSequenceAndPersists` | Verifica contra Oracle 12c R2 que el alta de departamentos utiliza `DEPARTMENTS_SEQ` sin colisionar con el dataset base. |
@@ -157,9 +166,14 @@ El script [`scripts/bootstrap-vm-geper.sh`](./scripts/bootstrap-vm-geper.sh) rea
 
 ---
 
-## 7. Acceso del presentador (túnel SSH) y laboratorios de seguridad
+## 7. Publicación en Azure Front Door, túnel SSH del presentador y laboratorios de seguridad
 
-- **Abrir GEPER desde la estación del presentador mediante túnel SSH autenticado:**
+- **Acceso público HTTPS mediante Azure Front Door Standard:**
+  - GEPER se publica en el endpoint HTTPS generado por `geperFrontDoor.outputs.geperEndpointUrl` (ej. `https://geper-lab-<hash>-<hash>.b02.azurefd.net/`).
+  - Azure Front Door termina TLS en el borde, redirige automáticamente `http://` -> `https://` (`307 Temporary Redirect`) y reenvía el tráfico hacia el origen `geper-vm-*.mexicocentral.cloudapp.azure.com:8080` (`forwardingProtocol: 'HttpOnly'`).
+  - **Protección de origen (sin exposición directa de la VM):** El NSG `nsg-vm-geper-ora` permite tráfico hacia el puerto `8080` **exclusivamente** desde el Service Tag `AzureFrontDoor.Backend` (prioridad `150`) y deniega cualquier conexión directa desde `Internet` a los puertos `80, 443, 8080` (prioridad `200`). El Listener de Oracle (`1521`) permanece estrictamente enlazado a `127.0.0.1:1521` y bloqueado en el NSG (prioridad `210`).
+  - **Aislamiento estricto de los laboratorios vulnerables (`/lab`):** Las rutas `/lab` y `/lab/sqli` devuelven **`404 Not Found`** a través de Azure Front Door. Además de desplegarse con `ENABLE_VULNERABILITY_LABS=false`, `LabLoopbackFilter` comprueba `request.getRemoteAddr()` directamente sobre el socket TCP (sin confiar en `X-Forwarded-For`), garantizando que los ejercicios de vulnerabilidades **jamás puedan invocarse a través de Azure Front Door**.
+- **Abrir GEPER por túnel SSH autenticado (para administración o ejercicios de seguridad en localhost):**
   1. Asegúrese de que su IPv4 pública `/32` esté autorizada en `presenterAllowedCidr` del NSG `nsg-vm-geper-ora`.
   2. Ejecute desde su estación de trabajo:
      ```powershell
@@ -167,7 +181,7 @@ El script [`scripts/bootstrap-vm-geper.sh`](./scripts/bootstrap-vm-geper.sh) rea
      # Equivalente a: ssh -i <CLAVE> -N -L 8080:127.0.0.1:8080 geperadmin@<IP_PUBLICA_GEPER>
      ```
   3. Abra su navegador local en **`http://localhost:8080/`**.
-- **Activar temporalmente los laboratorios de seguridad (`JAVA-SQLI-01` y `JAVA-XSS-01`) por localhost:**
+- **Activar temporalmente los laboratorios de seguridad (`JAVA-SQLI-01` y `JAVA-XSS-01`) solo por localhost:**
   Dentro de `vm-geper-ora` por SSH:
   ```bash
   sudo /var/opt/geper/stage/scripts/set-lab-mode-geper.sh true

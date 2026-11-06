@@ -355,8 +355,9 @@ chmod 750 "$APP_DIR"
 chmod 640 "${APP_DIR}/geper.jar"
 
 cat >"$APP_ENV_FILE" <<EOF
-SERVER_ADDRESS=127.0.0.1
+SERVER_ADDRESS=0.0.0.0
 SERVER_PORT=8080
+SERVER_TOMCAT_USE_RELATIVE_REDIRECTS=true
 GEPER_DB_URL=jdbc:oracle:thin:@//127.0.0.1:1521/${PDB_NAME}
 GEPER_DB_USER=GEPER_APP
 GEPER_DB_PASSWORD=${ORA_APP_PW}
@@ -368,6 +369,11 @@ JAVA_TOOL_OPTIONS=-Doracle.jdbc.timezoneAsRegion=false -Duser.timezone=UTC
 EOF
 chown root:geper "$APP_ENV_FILE"
 chmod 640 "$APP_ENV_FILE"
+
+if systemctl is-active --quiet firewalld; then
+  firewall-cmd --permanent --add-port=8080/tcp >/dev/null 2>&1 || true
+  firewall-cmd --reload >/dev/null 2>&1 || true
+fi
 
 cat >/etc/systemd/system/geper.service <<EOF
 [Unit]
