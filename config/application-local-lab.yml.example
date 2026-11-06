@@ -1,0 +1,34 @@
+# =====================================================================
+# EXAMPLE local-lab configuration for GEPER.
+#
+# Copy to application-local-lab.yml (git-ignored) OR export the equivalent
+# environment variables, then run with the local-lab profile:
+#
+#   export ENABLE_VULNERABILITY_LABS=true
+#   export GEPER_DB_PASSWORD='App#Lab2012'
+#   export GEPER_LAB_DB_PASSWORD='LabRo#Lab2012'
+#   mvn spring-boot:run -Dspring-boot.run.profiles=local-lab
+#
+# The passwords below are THROWAWAY LAB VALUES that match
+# db/accounts/01_create_accounts.sql. They protect only a loopback database
+# full of synthetic data. Never reuse them anywhere real, and never commit a
+# filled-in application-local-lab.yml.
+# =====================================================================
+server:
+  # Bind to loopback only while the labs are enabled.
+  address: 127.0.0.1
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+    username: GEPER_APP
+    password: App#Lab2012
+
+geper:
+  labs:
+    enabled: true
+    datasource:
+      url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+      username: GEPER_LABRO
+      password: LabRo#Lab2012

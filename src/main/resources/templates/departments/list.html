@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/common :: head('Departamentos')"></head>
+<body>
+<div th:replace="fragments/common :: header('departamentos')"></div>
+<div th:replace="fragments/common :: flash"></div>
+
+<div class="wrap">
+    <div class="panel">
+        <h2>Departamentos y resumen salarial</h2>
+        <div class="body">
+            <div class="toolbar"><a class="btn btn-link" th:href="@{/departamentos/nuevo}">Nuevo departamento</a></div>
+            <table class="grid">
+                <tr><th>#</th><th>Nombre</th><th>Ubicaci&oacute;n</th><th class="right">Empleados</th><th class="right">Suma salarial</th><th class="right">Promedio</th><th></th></tr>
+                <tr th:each="d : ${summary}">
+                    <td th:text="${d.departmentId}"></td>
+                    <td><a th:href="@{'/departamentos/' + ${d.departmentId}}" th:text="${d.departmentName}"></a></td>
+                    <td th:text="${d.location}"></td>
+                    <td class="right" th:text="${d.headcount}"></td>
+                    <td class="right" th:text="${#numbers.formatDecimal(d.totalSalary,1,'COMMA',2,'POINT')}"></td>
+                    <td class="right" th:text="${#numbers.formatDecimal(d.avgSalary,1,'COMMA',2,'POINT')}"></td>
+                    <td><a th:href="@{'/departamentos/' + ${d.departmentId} + '/editar'}">editar</a></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/common :: footer"></div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(pageTitle)">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=1024"/>
+    <title th:text="${pageTitle} + ' - GEPER'">GEPER</title>
+    <link rel="stylesheet" th:href="@{/css/geper.css}"/>
+</head>
+<body>
+
+<!-- Header: metallic bar + optional lab banner + compact tab menu -->
+<div th:fragment="header(active)">
+    <div class="topbar">
+        <div class="emblem">CM</div>
+        <div>
+            <div class="title">GEPER &mdash; Registro Central de Personal</div>
+            <div class="subtitle">Corporaci&oacute;n Regional Monte Azul &middot; Aplicaci&oacute;n ficticia de demostraci&oacute;n</div>
+        </div>
+    </div>
+
+    <div class="lab-banner" th:if="${labsEnabled}">
+        &#9888; Laboratorio vulnerable activo &middot; Datos ficticios
+    </div>
+
+    <div class="nav">
+        <a th:href="@{/}"               th:classappend="${active=='dashboard'}    ? 'active'">Tablero</a>
+        <a th:href="@{/empleados}"      th:classappend="${active=='empleados'}    ? 'active'">Empleados</a>
+        <a th:href="@{/puestos}"        th:classappend="${active=='puestos'}      ? 'active'">Puestos</a>
+        <a th:href="@{/departamentos}"  th:classappend="${active=='departamentos'}? 'active'">Departamentos</a>
+        <a th:if="${labsEnabled}" class="lab" th:href="@{/lab}"
+           th:classappend="${active=='lab'} ? 'active'">Laboratorio</a>
+    </div>
+</div>
+
+<!-- Flash message, monospaced operation style -->
+<div th:fragment="flash" th:if="${flash}" class="wrap">
+    <div class="msg-mono" th:text="${flash}">OK</div>
+</div>
+
+<div th:fragment="footer" class="footer">
+    Aplicaci&oacute;n ficticia de demostraci&oacute;n &middot; GEPER v1.3 &middot; Corporaci&oacute;n Regional Monte Azul (ficticia)
+</div>
+
+</body>
+</html>

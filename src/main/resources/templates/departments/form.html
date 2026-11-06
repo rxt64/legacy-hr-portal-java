@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/common :: head('Departamento')"></head>
+<body>
+<div th:replace="fragments/common :: header('departamentos')"></div>
+
+<div class="wrap">
+    <div class="panel">
+        <h2 th:text="${mode == 'create'} ? 'Nuevo departamento' : 'Editar departamento'">Departamento</h2>
+        <div class="body">
+            <form class="dense" method="post"
+                  th:action="${mode == 'create'} ? @{/departamentos} : @{'/departamentos/' + ${department.departmentId}}"
+                  th:object="${department}">
+                <table>
+                    <tr><td><label>Nombre</label></td><td><input type="text" th:field="*{departmentName}" size="30"/></td></tr>
+                    <tr><td><label>Ubicaci&oacute;n</label></td><td><input type="text" th:field="*{location}" size="30"/></td></tr>
+                </table>
+                <div class="toolbar" style="margin-top:6px">
+                    <input type="submit" value="Guardar"/>
+                    <a class="btn btn-link" th:href="@{/departamentos}">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/common :: footer"></div>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/common :: head('Puestos')"></head>
+<body>
+<div th:replace="fragments/common :: header('puestos')"></div>
+<div th:replace="fragments/common :: flash"></div>
+
+<div class="wrap">
+    <div class="panel">
+        <h2>Cat&aacute;logo de puestos y rangos salariales</h2>
+        <div class="body">
+            <table class="grid">
+                <tr><th>C&oacute;digo</th><th>T&iacute;tulo</th><th class="right">Salario m&iacute;nimo</th><th class="right">Salario m&aacute;ximo</th><th></th></tr>
+                <tr th:each="j : ${jobs}">
+                    <td th:text="${j.jobId}"></td>
+                    <td th:text="${j.jobTitle}"></td>
+                    <td class="right" th:text="${#numbers.formatDecimal(j.minSalary,1,'COMMA',2,'POINT')}"></td>
+                    <td class="right" th:text="${#numbers.formatDecimal(j.maxSalary,1,'COMMA',2,'POINT')}"></td>
+                    <td><a th:href="@{'/puestos/' + ${j.jobId} + '/editar'}">editar</a></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/common :: footer"></div>
+</body>
+</html>

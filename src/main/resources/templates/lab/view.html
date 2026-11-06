@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/common :: head('Lab XSS - vista')"></head>
+<body>
+<div th:replace="fragments/common :: header('lab')"></div>
+<div th:replace="fragments/common :: flash"></div>
+
+<div class="wrap">
+    <div class="panel">
+        <h2 th:text="'Vista de laboratorio: ' + ${employee.fullName} + ' (#' + ${employee.employeeId} + ')'">Vista</h2>
+        <div class="body">
+            <p class="muted">Esta vista renderiza las observaciones almacenadas <b>sin escape</b> (th:utext).</p>
+            <div style="border:1px solid #c8c8c8;background:#fff;padding:8px;min-height:40px">
+                <!-- SECURITY-LAB JAVA-XSS-01: stored content emitted unescaped. -->
+                <span th:utext="${employee.observations}"></span>
+            </div>
+            <div class="toolbar" style="margin-top:8px">
+                <a class="btn btn-link" th:href="@{'/empleados/' + ${employee.employeeId}}">Ver ficha normal (escapada)</a>
+                <form method="post" style="display:inline"
+                      th:action="@{'/lab/xss/reset/' + ${employee.employeeId}}">
+                    <input type="submit" value="Restablecer este empleado"/>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/common :: footer"></div>
+</body>
+</html>

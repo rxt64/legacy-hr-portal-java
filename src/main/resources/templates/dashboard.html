@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/common :: head('Tablero')"></head>
+<body>
+<div th:replace="fragments/common :: header('dashboard')"></div>
+<div th:replace="fragments/common :: flash"></div>
+
+<div class="wrap">
+    <div class="panel">
+        <h2>Indicadores generales</h2>
+        <div class="body">
+            <div class="kpis">
+                <div class="kpi"><div class="n" th:text="${stats.totalEmployees}">0</div><div class="l">Empleados</div></div>
+                <div class="kpi"><div class="n" th:text="${stats.totalDepartments}">0</div><div class="l">Departamentos</div></div>
+                <div class="kpi"><div class="n" th:text="${stats.totalJobs}">0</div><div class="l">Puestos</div></div>
+                <div class="kpi"><div class="n" th:text="${#numbers.formatDecimal(stats.totalSalary,1,'COMMA',2,'POINT')}">0</div><div class="l">Suma salarial</div></div>
+                <div class="kpi"><div class="n" th:text="${#numbers.formatDecimal(stats.avgSalary,1,'COMMA',2,'POINT')}">0</div><div class="l">Salario promedio</div></div>
+            </div>
+            <p class="muted" style="margin:6px 0 0 0">Todos los indicadores se calculan en Oracle mediante consultas de agregaci&oacute;n.</p>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Resumen salarial por departamento</h2>
+        <div class="body">
+            <table class="grid">
+                <tr><th>#</th><th>Departamento</th><th>Ubicaci&oacute;n</th><th class="right">Empleados</th><th class="right">Suma salarial</th><th class="right">Promedio</th></tr>
+                <tr th:each="d : ${deptSummary}">
+                    <td th:text="${d.departmentId}">10</td>
+                    <td><a th:href="@{'/departamentos/' + ${d.departmentId}}" th:text="${d.departmentName}">Dept</a></td>
+                    <td th:text="${d.location}">Loc</td>
+                    <td class="right" th:text="${d.headcount}">0</td>
+                    <td class="right" th:text="${#numbers.formatDecimal(d.totalSalary,1,'COMMA',2,'POINT')}">0</td>
+                    <td class="right" th:text="${#numbers.formatDecimal(d.avgSalary,1,'COMMA',2,'POINT')}">0</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/common :: footer"></div>
+</body>
+</html>

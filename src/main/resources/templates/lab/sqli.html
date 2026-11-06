@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/common :: head('Lab SQLi')"></head>
+<body>
+<div th:replace="fragments/common :: header('lab')"></div>
+
+<div class="wrap">
+    <div class="panel">
+        <h2>SECURITY-LAB JAVA-SQLI-01 &mdash; Inyecci&oacute;n SQL</h2>
+        <div class="body">
+            <p>B&uacute;squeda por apellido. El t&eacute;rmino se concatena directamente en el SQL y se ejecuta con un
+               <code>Statement</code> contra la cuenta de solo lectura <code>GEPER_LABRO</code>.</p>
+            <form class="dense" method="get" th:action="@{/lab/sqli}">
+                <label>Apellido contiene</label>
+                <input type="text" name="term" th:value="${term}" size="40"/>
+                <input type="submit" value="Buscar"/>
+            </form>
+            <p class="muted">Reproducci&oacute;n inocua: pruebe <code>mora</code> (filtra a 2 filas) y luego
+               <code>x') OR 1=1 --</code> (ampl&iacute;a el resultado a todo el personal). Sin modificar datos.</p>
+        </div>
+    </div>
+
+    <div class="panel" th:if="${sql}">
+        <h2>SQL enviado a Oracle</h2>
+        <div class="body"><code class="sql" th:text="${sql}"></code></div>
+    </div>
+
+    <div class="panel" th:if="${rows}">
+        <h2>Resultados</h2>
+        <div class="body">
+            <table class="grid">
+                <tr><th>#</th><th>Nombre</th><th>Apellidos</th><th>Puesto</th><th>Departamento</th></tr>
+                <tr th:each="r : ${rows}">
+                    <td th:text="${r.employeeId}"></td>
+                    <td th:text="${r.firstName}"></td>
+                    <td th:text="${r.lastName}"></td>
+                    <td th:text="${r.jobTitle}"></td>
+                    <td th:text="${r.departmentName}"></td>
+                    <td th:if="${r.error}" colspan="5" th:text="${r.error}"></td>
+                </tr>
+            </table>
+            <p class="muted">Filas: <span th:text="${#lists.size(rows)}"></span></p>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/common :: footer"></div>
+</body>
+</html>

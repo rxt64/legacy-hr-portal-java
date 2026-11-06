@@ -1,0 +1,28 @@
+# Build output
+target/
+*.class
+
+# Local, environment-specific config (never commit filled-in secrets)
+application-local-lab.yml
+src/main/resources/application-local-lab.yml
+config/application-local-lab.yml
+*.local.yml
+.env
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Logs, dumps, temp
+*.log
+logs/
+*.dmp
+*.trc
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/common :: head('Lab XSS')"></head>
+<body>
+<div th:replace="fragments/common :: header('lab')"></div>
+<div th:replace="fragments/common :: flash"></div>
+
+<div class="wrap">
+    <div class="panel">
+        <h2>SECURITY-LAB JAVA-XSS-01 &mdash; XSS almacenado</h2>
+        <div class="body">
+            <p>Guarde un texto de observaciones y luego &aacute;bralo en la <b>vista de laboratorio</b>, que lo renderiza
+               <b>sin escape HTML</b>. La ficha normal del empleado muestra el mismo campo escapado.</p>
+            <form class="dense" method="post" th:action="@{/lab/xss}">
+                <table>
+                    <tr><td><label>Empleado</label></td>
+                        <td><select name="employeeId">
+                            <option th:each="e : ${employees}" th:value="${e.employeeId}"
+                                    th:text="${e.employeeId} + ' - ' + ${e.fullName}"
+                                    th:selected="${employee != null and employee.employeeId == e.employeeId}"></option>
+                        </select></td></tr>
+                    <tr><td><label>Observaciones</label></td>
+                        <td><textarea name="observations" style="width:420px;height:80px"></textarea></td></tr>
+                </table>
+                <p class="muted">Ejemplo inocuo:
+                   <code>&lt;b&gt;LAB&lt;/b&gt; &lt;script&gt;document.title='XSS-LAB'&lt;/script&gt;</code>
+                   (cambia un texto visible; no lee cookies ni hace llamadas externas).</p>
+                <input type="submit" value="Almacenar y ver"/>
+            </form>
+            <p class="muted">Restablecer: ejecute <code>db/reset/90_reset_lab.sql</code> para restaurar todo el baseline.</p>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/common :: footer"></div>
+</body>
+</html>

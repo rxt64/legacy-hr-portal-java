@@ -1,0 +1,40 @@
+# =====================================================================
+# GEPER - default configuration. NO SECRETS are stored here: every
+# credential is read from an environment variable with a safe, empty or
+# non-privileged default. See config/application-local-lab.yml.example for
+# a ready-to-run local lab profile and README.md for how to supply values.
+# =====================================================================
+server:
+  port: 8080
+
+spring:
+  application:
+    name: geper
+  thymeleaf:
+    cache: false
+  # Runtime datasource: the least-privilege GEPER_APP account. The schema is
+  # resolved to the owner via the connection-init SQL; GEPER_APP still holds
+  # only the grants issued in db/schema/02_schema.sql.
+  datasource:
+    url: ${GEPER_DB_URL:jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
+    username: ${GEPER_DB_USER:GEPER_APP}
+    password: ${GEPER_DB_PASSWORD:}
+    hikari:
+      pool-name: geper-app
+      maximum-pool-size: 5
+      connection-init-sql: ALTER SESSION SET CURRENT_SCHEMA = GEPER_OWNER
+
+# Vulnerability labs. DISABLED BY DEFAULT. Set ENABLE_VULNERABILITY_LABS=true
+# (and reach the app over loopback) to turn them on for a local session only.
+geper:
+  labs:
+    enabled: ${ENABLE_VULNERABILITY_LABS:false}
+    datasource:
+      url: ${GEPER_LAB_DB_URL:jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
+      username: ${GEPER_LAB_DB_USER:GEPER_LABRO}
+      password: ${GEPER_LAB_DB_PASSWORD:}
+
+logging:
+  level:
+    root: INFO
+    com.monteazul.geper: INFO

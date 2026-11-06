@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/common :: head('Empleados')"></head>
+<body>
+<div th:replace="fragments/common :: header('empleados')"></div>
+<div th:replace="fragments/common :: flash"></div>
+
+<div class="wrap">
+    <div class="panel">
+        <h2>B&uacute;squeda de personal</h2>
+        <div class="body">
+            <form class="dense" method="get" th:action="@{/empleados}">
+                <table>
+                    <tr>
+                        <td><label>Nombre o apellido</label></td>
+                        <td><input type="text" name="name" th:value="${name}" size="24"/></td>
+                        <td><label>Departamento</label></td>
+                        <td>
+                            <select name="departmentId">
+                                <option value="">(todos)</option>
+                                <option th:each="d : ${departments}" th:value="${d.departmentId}"
+                                        th:text="${d.departmentName}" th:selected="${departmentId == d.departmentId}"></option>
+                            </select>
+                        </td>
+                        <td><label>Puesto</label></td>
+                        <td>
+                            <select name="jobId">
+                                <option value="">(todos)</option>
+                                <option th:each="j : ${jobs}" th:value="${j.jobId}"
+                                        th:text="${j.jobTitle}" th:selected="${jobId == j.jobId}"></option>
+                            </select>
+                        </td>
+                        <td><input type="submit" value="Buscar"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Resultados</h2>
+        <div class="body">
+            <div class="toolbar"><a class="btn btn-link" th:href="@{/empleados/nuevo}">Nuevo empleado</a></div>
+            <table class="grid">
+                <tr><th>#</th><th>Apellidos</th><th>Nombre</th><th>Puesto</th><th>Departamento</th><th class="right">Salario</th></tr>
+                <tr th:each="e : ${results}">
+                    <td th:text="${e.employeeId}">0</td>
+                    <td><a th:href="@{'/empleados/' + ${e.employeeId}}" th:text="${e.lastName}">Apellido</a></td>
+                    <td th:text="${e.firstName}">Nombre</td>
+                    <td th:text="${e.jobTitle}">Puesto</td>
+                    <td th:text="${e.departmentName}">Dept</td>
+                    <td class="right" th:text="${#numbers.formatDecimal(e.salary,1,'COMMA',2,'POINT')}">0</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(results)}"><td colspan="6" class="muted">Sin resultados.</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/common :: footer"></div>
+</body>
+</html>

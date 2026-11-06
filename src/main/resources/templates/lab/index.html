@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/common :: head('Laboratorio')"></head>
+<body>
+<div th:replace="fragments/common :: header('lab')"></div>
+
+<div class="wrap">
+    <div class="panel">
+        <h2>Laboratorio de vulnerabilidades (solo local)</h2>
+        <div class="body">
+            <p>Estas rutas existen &uacute;nicamente porque <code>ENABLE_VULNERABILITY_LABS=true</code> y la petici&oacute;n
+               llega por loopback. Usan solo datos sint&eacute;ticos y una cuenta Oracle de solo lectura.</p>
+            <ul>
+                <li><a th:href="@{/lab/sqli}">SECURITY-LAB JAVA-SQLI-01</a> &mdash; Inyecci&oacute;n SQL en b&uacute;squeda por apellido (Statement + concatenaci&oacute;n).</li>
+                <li><a th:href="@{/lab/xss}">SECURITY-LAB JAVA-XSS-01</a> &mdash; XSS almacenado en observaciones del empleado (render sin escape).</li>
+            </ul>
+            <p class="muted">Procedimientos de reproducci&oacute;n y correcci&oacute;n esperada en <code>docs/security-labs.md</code>.</p>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/common :: footer"></div>
+</body>
+</html>

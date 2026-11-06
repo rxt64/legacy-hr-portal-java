@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/common :: head('Empleado')"></head>
+<body>
+<div th:replace="fragments/common :: header('empleados')"></div>
+
+<div class="wrap">
+    <div class="panel">
+        <h2 th:text="${mode == 'create'} ? 'Nuevo empleado' : 'Editar empleado'">Empleado</h2>
+        <div class="body">
+            <form class="dense" method="post"
+                  th:action="${mode == 'create'} ? @{/empleados} : @{'/empleados/' + ${employee.employeeId}}"
+                  th:object="${employee}">
+                <table>
+                    <tr><td><label>Nombre</label></td><td><input type="text" th:field="*{firstName}"/></td>
+                        <td><label>Apellidos</label></td><td><input type="text" th:field="*{lastName}"/></td></tr>
+                    <tr><td><label>Correo</label></td><td><input type="email" th:field="*{email}" size="30"/></td>
+                        <td><label>Fecha de ingreso</label></td><td><input type="text" th:field="*{hireDate}" placeholder="AAAA-MM-DD"/></td></tr>
+                    <tr><td><label>Puesto</label></td>
+                        <td><select th:field="*{jobId}">
+                            <option th:each="j : ${jobs}" th:value="${j.jobId}" th:text="${j.jobTitle}"></option>
+                        </select></td>
+                        <td><label>Departamento</label></td>
+                        <td><select th:field="*{departmentId}">
+                            <option value="">(ninguno)</option>
+                            <option th:each="d : ${departments}" th:value="${d.departmentId}" th:text="${d.departmentName}"></option>
+                        </select></td></tr>
+                    <tr><td><label>Salario</label></td><td><input type="number" step="0.01" th:field="*{salary}"/></td>
+                        <td><label>Observaciones</label></td><td><textarea th:field="*{observations}"></textarea></td></tr>
+                </table>
+                <div style="color:#a00" th:if="${#fields.hasErrors('*')}">
+                    <ul><li th:each="err : ${#fields.errors('*')}" th:text="${err}"></li></ul>
+                </div>
+                <div class="toolbar" style="margin-top:6px">
+                    <input type="submit" value="Guardar"/>
+                    <a class="btn btn-link" th:href="@{/empleados}">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/common :: footer"></div>
+</body>
+</html>
