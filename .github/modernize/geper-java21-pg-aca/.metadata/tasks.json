@@ -14,7 +14,12 @@
         "passUnitTests": "true"
       },
       "dependencies": [],
-      "status": "started"
+      "status": "success",
+      "taskSummary": "Froze the Phase-1 behavior baseline for GEPER - 49 test cases across 25 HTTP entry points, an infra decision table confirming Mock mode for the Oracle->PostgreSQL dependency, and supporting testdata fixtures, all under src/test/test-cases/ (now frozen). No production code changed; build and existing unit tests pass unchanged.",
+      "successCriteriaStatus": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      }
     },
     {
       "type": "upgrade",
