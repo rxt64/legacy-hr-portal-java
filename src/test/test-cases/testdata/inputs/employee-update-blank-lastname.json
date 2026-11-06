@@ -1,0 +1,9 @@
+{
+  "_comment": "Form fields for POST /empleados/{id} violating @NotBlank on lastName (failure: invalid update payload).",
+  "firstName": "Gabriela",
+  "lastName": "",
+  "email": "grivera@monteazul.example",
+  "jobId": "OPER",
+  "salary": "1999",
+  "departmentId": "60"
+}

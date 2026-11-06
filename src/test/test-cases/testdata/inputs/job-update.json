@@ -1,0 +1,6 @@
+{
+  "_comment": "Form fields for POST /puestos/{id}, targeting job OPER.",
+  "jobTitle": "Operario de Planta",
+  "minSalary": "1150",
+  "maxSalary": "2100"
+}

@@ -1,0 +1,10 @@
+{
+  "_comment": "Form fields for POST /empleados/{id} (update), targeting employee 127 (Gabriela Rivera Salas, OPER, dept 60).",
+  "firstName": "Gabriela",
+  "lastName": "Rivera Salas",
+  "email": "grivera@monteazul.example",
+  "jobId": "OPER",
+  "salary": "1999",
+  "departmentId": "60",
+  "observations": "Actualizado por prueba de integracion."
+}

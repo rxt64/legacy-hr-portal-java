@@ -1,0 +1,9 @@
+{
+  "_comment": "Form fields (application/x-www-form-urlencoded) for POST /empleados",
+  "firstName": "Prueba",
+  "lastName": "Sintetica",
+  "email": "pruebasint@monteazul.example",
+  "jobId": "OPER",
+  "salary": "1500",
+  "departmentId": "60"
+}

@@ -1,0 +1,5 @@
+{
+  "_comment": "Form fields for POST /lab/xss (lab routes enabled only). Reuses the existing characterization fixture shape from LabVulnerabilityCharacterizationIT; the exact escaping/parameterization behavior demonstrated by this payload is intentionally OUT OF SCOPE of the frozen contract because migration task 001 remediates JAVA-XSS-01 and JAVA-SQLI-01 by design.",
+  "employeeId": 126,
+  "observations": "<script>alert('xss-lab')</script>"
+}

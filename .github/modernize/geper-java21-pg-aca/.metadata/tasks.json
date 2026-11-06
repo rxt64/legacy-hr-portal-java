@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Tasks template for modernization plan. Generate this file alongside plan.md to track individual migration tasks.",
+  "tasks": [
+    {
+      "type": "setupBaseline",
+      "id": "000-setupBaseline",
+      "description": "Snapshot the current GEPER source tree and freeze a test baseline (test cases, test data, and the real/mock decision table for external dependencies such as the Oracle database) before any modernization changes are applied.",
+      "reason": "A frozen pre-change baseline is required to generate and later verify post-migration integration tests without being affected by concurrent code changes.",
+      "requirements": "Capture the current behavior of GEPER (web controllers, Thymeleaf views, JDBC repositories, Oracle-backed data access) as a frozen test specification. Produce the infra-decision-table defining real vs. mock strategy for the Oracle/PostgreSQL dependency to be reused unchanged by the later integration test task.",
+      "snapshotFolder": "src",
+      "successCriteria": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      },
+      "dependencies": [],
+      "status": "started"
+    },
+    {
+      "type": "upgrade",
+      "id": "001-upgrade-java21-springboot35",
+      "description": "Upgrade GEPER from Java 8 and Spring Boot 2.7 to Java 21 and Spring Boot 3.5 (Jakarta EE), and remediate the JAVA-SQLI-01 (raw SQL/Statement concatenation) and JAVA-XSS-01 (unescaped Thymeleaf output) security findings. Addresses issues: JAVA-SQLI-01, JAVA-XSS-01.",
+      "reason": "The application runs on an out-of-support Java 8 / Spring Boot 2.7 (javax.*) stack, which blocks adoption of Azure Database for PostgreSQL Flexible Server JDBC tooling and current Spring Boot features, and contains an unremediated SQL injection and reflected XSS finding.",
+      "requirements": "Upgrade the Maven build to Java 21 and Spring Boot 3.5.x, migrating javax.* package usages (servlet, validation) to jakarta.*. Remediate JAVA-SQLI-01 by replacing raw SQL string concatenation with a parameterized PreparedStatement in the lab search repository. Remediate JAVA-XSS-01 by replacing unescaped Thymeleaf output (th:utext) with contextually-escaped output (th:text) in the employee view template. Preserve existing application behavior and REST/web contracts.",
+      "successCriteria": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      },
+      "dependencies": []
+    },
+    {
+      "type": "transform",
+      "id": "002-transform-oracle-to-postgresql",
+      "description": "Migrate the GEPER database layer from Oracle Database 12c R2 to Azure Database for PostgreSQL Flexible Server, including schema/sequence conversion, the UPDATE_JOB_HISTORY PL/SQL trigger, and Oracle-specific JDBC SQL (NVL, DUAL, NEXTVAL, SYSDATE).",
+      "reason": "GEPER's schema, sequences, PL/SQL trigger, and JDBC queries use Oracle-specific constructs that are not supported by PostgreSQL and must be converted to run on Azure Database for PostgreSQL Flexible Server.",
+      "requirements": "Convert the Oracle schema and types (NUMBER, VARCHAR2, DATE, sequences DEPARTMENTS_SEQ/EMPLOYEES_SEQ) to PostgreSQL-native equivalents. Reimplement the UPDATE_JOB_HISTORY PL/SQL trigger as an equivalent PL/pgSQL trigger function preserving the same least-privilege (definer-rights) and firing semantics. Replace Oracle-specific JDBC SQL dialect (NVL -> COALESCE, SELECT ... NEXTVAL FROM DUAL -> SELECT nextval(...), SYSDATE -> CURRENT_DATE, ALTER SESSION SET CURRENT_SCHEMA -> SET search_path) in Spring JDBC repositories and configuration. Replace the ojdbc8 driver dependency with the PostgreSQL JDBC driver. Perform an offline data transfer plan for existing data.",
+      "skills": [
+        { "name": "geper-oracle12c-to-postgresql-migration", "location": "project" }
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      },
+      "dependencies": ["001-upgrade-java21-springboot35"]
+    },
+    {
+      "type": "security",
+      "id": "003-security-cve-remediation",
+      "description": "Scan all project dependencies for known CVEs and remediate any identified vulnerabilities to ensure the application is secure before deployment.",
+      "reason": "Dependency upgrades (Spring Boot 3.5, PostgreSQL JDBC driver) may introduce or retain vulnerable transitive dependencies that must be remediated before the application is deployed.",
+      "requirements": "Upgrade vulnerable dependencies to the minimum patched version. If a CVE fix requires a major version upgrade, document the affected dependency, the current version, the upgraded major version, and the breaking change risk. Verify that the project builds and all tests pass after remediation.",
+      "environmentConfiguration": "Java 21 runtime and Maven build established by task 001-upgrade-java21-springboot35.",
+      "successCriteria": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      },
+      "dependencies": ["002-transform-oracle-to-postgresql"]
+    },
+    {
+      "type": "integrationTest",
+      "id": "004-integrationTest",
+      "description": "Build integration tests for migrated Azure services and run post-migration verification",
+      "reason": "Verify that the Java 21/Spring Boot 3.5 upgrade, security remediation, and PostgreSQL database migration preserve GEPER's existing behavior before deployment.",
+      "requirements": "Use the frozen baseline test specification from 000-setupBaseline. Since no live Azure Database for PostgreSQL Flexible Server instance is currently available to this project, run integration tests in Mock mode using mocked database dependencies. Verify equivalence of behavior for lab search (post-JAVA-SQLI-01 fix), employee view rendering (post-JAVA-XSS-01 fix), and the UPDATE_JOB_HISTORY trigger equivalent (job/department change inserts exactly one job_history row and advances assignment_start_date; salary-only changes do not).",
+      "dependencies": [
+        "000-setupBaseline",
+        "001-upgrade-java21-springboot35",
+        "002-transform-oracle-to-postgresql",
+        "003-security-cve-remediation"
+      ]
+    },
+    {
+      "type": "deployment",
+      "id": "005-deployment-azure-container-apps",
+      "description": "Containerize GEPER and deploy it to Azure Container Apps.",
+      "reason": "The user requested containerizing the application and replacing the VM-hosted deployment model with Azure Container Apps.",
+      "requirements": "Create a multi-stage Dockerfile (JDK build stage, JRE runtime stage, non-root user, port 8080). Provision an Azure Container Apps environment (the repository's existing infra/azure Bicep targets the legacy VM + Oracle stack and does not define ACA or PostgreSQL Flexible Server resources, so these target resources are provisioned as part of this task) and deploy the container image. Use managed identity for the application's connection to Azure Database for PostgreSQL Flexible Server where supported.",
+      "targetAzureService": "azurecontainerapp",
+      "resourceStatus": "New Azure Container Apps environment and Azure Database for PostgreSQL Flexible Server to be provisioned; existing infra/azure Bicep (legacy VM + Oracle stack) is out of scope for this target.",
+      "deploymentTool": "bicep",
+      "skills": [
+        { "name": "azcli-containerapp-deploy", "location": "builtin" }
+      ],
+      "dependencies": ["004-integrationTest"]
+    }
+  ],
+  "metadata": {
+    "planName": "geper-java21-pg-aca",
+    "projectName": "GEPER",
+    "language": "java",
+    "createdAt": "2026-11-06T17:01:32-06:00",
+    "version": "1.0"
+  }
+}

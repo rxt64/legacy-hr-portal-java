@@ -1,0 +1,9 @@
+{
+  "_comment": "Form fields for POST /empleados violating @NotNull @Positive on salary (failure: non-positive salary).",
+  "firstName": "Prueba",
+  "lastName": "Negativa",
+  "email": "negativa@monteazul.example",
+  "jobId": "OPER",
+  "salary": "0",
+  "departmentId": "60"
+}

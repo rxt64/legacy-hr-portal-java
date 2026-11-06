@@ -1,0 +1,13 @@
+{
+  "_comment": "Form fields for POST /empleados exercising max-length boundaries: firstName/lastName at Size(max=40), observations at Size(max=2000).",
+  "firstName": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "firstNameLength": 40,
+  "lastName": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+  "lastNameLength": 40,
+  "email": "limite@monteazul.example",
+  "jobId": "OPER",
+  "salary": "1100",
+  "departmentId": "60",
+  "observations": "C-repeated-2000-times-see-observationsLength",
+  "observationsLength": 2000
+}

@@ -1,0 +1,9 @@
+{
+  "_comment": "Form fields for POST /empleados violating @NotBlank on firstName (special-input: blank required field).",
+  "firstName": "",
+  "lastName": "Sintetica",
+  "email": "blank@monteazul.example",
+  "jobId": "OPER",
+  "salary": "1500",
+  "departmentId": "60"
+}
