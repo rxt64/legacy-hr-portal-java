@@ -3,7 +3,9 @@
 Valores verificables tras provisionar el esquema y cargar
 `db/data/03_synthetic_data.sql`. Sirven como referencia para comprobar que una
 migración o modernización **preserva el comportamiento**. Verificado el
-2026-11-06 contra Oracle Free 23c local.
+2026-11-06 contra **Oracle Database 12c Enterprise Edition Release 12.2.0.1.0**
+(PDB `GEPERPDB` sobre Oracle Linux Server 7.4 en Azure `mexicocentral`, con
+Java 8 `1.8.0_432` y `ojdbc8` `12.2.0.1`).
 
 ## Conteos
 
