@@ -78,6 +78,16 @@ param existingFrontDoorProfileName string = ''
 @description('Nombre del endpoint de Azure Front Door para GEPER (vacío usa el nombre determinista).')
 param geperFrontDoorEndpointName string = ''
 
+@description('Aprovisionar destino de migración Azure Database for PostgreSQL Flexible Server en Mexico Central.')
+param enablePostgresMigrationTarget bool = true
+
+@description('Usuario administrador de Azure Database for PostgreSQL Flexible Server.')
+param postgresAdminLogin string = 'geperpgadmin'
+
+@description('Contraseña del administrador de Azure Database for PostgreSQL Flexible Server (si está vacía reutiliza adminPassword).')
+@secure()
+param postgresAdminPassword string = ''
+
 @description('Tags genéricos aplicados a todos los recursos de GEPER.')
 param tags object = {
   project: 'legacy-modernization-lab'
@@ -149,6 +159,24 @@ module geperFrontDoor 'modules/geper-frontdoor.bicep' = if (enableFrontDoor && e
   }
 }
 
+module geperPostgres 'modules/postgres-flexible.bicep' = if (enablePostgresMigrationTarget) {
+  name: 'deploy-geper-postgres-migration'
+  scope: existingRg
+  params: {
+    location: location
+    postgresServerName: 'pg-geper-${take(uniqueString(existingRg.id), 8)}'
+    postgresDatabaseName: 'geper'
+    postgresAdminLogin: postgresAdminLogin
+    postgresAdminPassword: !empty(postgresAdminPassword) ? postgresAdminPassword : adminPassword
+    allowedGeperVmPublicIp: geperVm.outputs.publicIpAddress
+    existingVnetName: existingVnetName
+    existingPrivateEndpointSubnetName: 'snet-private-endpoints'
+    existingAcrName: 'acrlegacylabb${take(uniqueString(existingRg.id), 8)}'
+    geperModernIdentityName: 'id-geper-modern-aca'
+    tags: tags
+  }
+}
+
 output resourceGroupName string = existingRg.name
 output location string = location
 output geperVmName string = geperVm.outputs.vmName
@@ -159,3 +187,10 @@ output geperDataDiskId string = geperVm.outputs.dataDiskId
 output frontDoorProfileName string = (enableFrontDoor && enablePublicIp) ? geperFrontDoor!.outputs.frontDoorProfileName : ''
 output geperFrontDoorEndpointHostName string = (enableFrontDoor && enablePublicIp) ? geperFrontDoor!.outputs.geperEndpointHostName : ''
 output geperFrontDoorUrl string = (enableFrontDoor && enablePublicIp) ? geperFrontDoor!.outputs.geperEndpointUrl : ''
+output postgresServerName string = enablePostgresMigrationTarget ? geperPostgres!.outputs.postgresServerName : ''
+output postgresServerFqdn string = enablePostgresMigrationTarget ? geperPostgres!.outputs.postgresServerFqdn : ''
+output postgresDatabaseName string = enablePostgresMigrationTarget ? geperPostgres!.outputs.postgresDatabaseName : ''
+output postgresConversionValidationDbName string = enablePostgresMigrationTarget ? geperPostgres!.outputs.postgresConversionValidationDbName : ''
+output postgresRehearsalDbName string = enablePostgresMigrationTarget ? geperPostgres!.outputs.postgresRehearsalDbName : ''
+output geperModernIdentityName string = enablePostgresMigrationTarget ? geperPostgres!.outputs.geperModernIdentityName : ''
+output geperModernIdentityClientId string = enablePostgresMigrationTarget ? geperPostgres!.outputs.geperModernIdentityClientId : ''

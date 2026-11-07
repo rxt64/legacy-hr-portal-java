@@ -24,3 +24,4 @@ param adminUsername = 'geperadmin'
 param sshPublicKey = readEnvironmentVariable('GEPER_VM_SSH_PUBLIC_KEY', '')
 param adminPassword = readEnvironmentVariable('GEPER_VM_ADMIN_PASSWORD', '')
 param enableFrontDoor = true
+param enablePostgresMigrationTarget = true

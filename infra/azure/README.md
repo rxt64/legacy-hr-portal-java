@@ -50,6 +50,7 @@ flowchart LR
 | [`modules/geper-nsg.bicep`](./modules/geper-nsg.bicep) | `resourceGroup` | Crea `nsg-vm-geper-ora`. Permite tráfico entrante en el puerto `8080/TCP` **exclusivamente** desde el Service Tag `AzureFrontDoor.Backend` (prioridad `150`), permite SSH (`22/TCP`) solo si `presenterAllowedCidr` es válido, y bloquea explícitamente `80`, `443`, `8080`, `1521` y `5500` directos desde `Internet` (prioridades `200`/`210`). |
 | [`modules/geper-vm.bicep`](./modules/geper-vm.bicep) | `resourceGroup` | Referencia `vnet-legacy-lab-mxc` y `snet-geper` como recursos `existing`. Crea `pip-vm-geper-ora` con etiqueta DNS (`geper-vm-*.mexicocentral.cloudapp.azure.com`), `nic-vm-geper-ora`, el disco administrado persistente `disk-vm-geper-ora-oradata` (`LUN 0`, `deleteOption: 'Detach'`) y la VM `vm-geper-ora`. |
 | [`modules/geper-frontdoor.bicep`](./modules/geper-frontdoor.bicep) | `resourceGroup` | Referencia el perfil existente de Azure Front Door Standard (`afd-legacy-lab-*`, creado por `legacy-academic-portal-dotnet`) como `existing` y aprovisiona el endpoint HTTPS de GEPER (`geper-lab-*`), el grupo de origen `og-geper` (sondas `GET /` sobre `Http:8080`), el origen `origin-geper-vm` (`geper-vm-*.mexicocentral.cloudapp.azure.com:8080`) y la ruta `route-geper-default` con redirección automática HTTP -> HTTPS. |
+| [`modules/postgres-flexible.bicep`](./modules/postgres-flexible.bicep) | `resourceGroup` | Aprovisiona el servidor destino **Azure Database for PostgreSQL Flexible Server** (`pg-geper-*`, PostgreSQL 16, `Standard_B2s`), las bases `geper` (demo en vivo, vacía), `geper_conversion_check` (validación temporal de DDL/PLpgSQL) y `geper_rehearsal` (ensayo separado), el Private Endpoint `pe-pg-geper-*` (`10.42.6.5`) con zona DNS privada `privatelink.postgres.database.azure.com` y la identidad administrada `id-geper-modern-aca` con rol `AcrPull`. |
 | [`main.bicepparam`](./main.bicepparam) | `subscription` | Plantilla de parámetros sin secretos ni IPs privadas; lee `GEPER_VM_SSH_PUBLIC_KEY` y `GEPER_VM_ADMIN_PASSWORD` desde el entorno. |
 
 ### 2.2 Parámetros principales de `main.bicep`
@@ -206,6 +207,9 @@ El script [`scripts/bootstrap-vm-geper.sh`](./scripts/bootstrap-vm-geper.sh) rea
 
 # Restablecer explícitamente el dataset sintético (30 empleados, 6 departamentos, 10 puestos, suma salarial 99800)
 ./infra/azure/scripts/manage-lab.ps1 -Action ResetDataset -SubscriptionId "<SUBSCRIPTION_ID>"
+
+# Eliminar selectivamente SOLO los recursos destino de modernización de GEPER (PostgreSQL Flexible Server, Private Endpoint e identidad, sin afectar vm-geper-ora ni Front Door)
+./infra/azure/scripts/manage-lab.ps1 -Action TeardownTargetsOnly -SubscriptionId "<SUBSCRIPTION_ID>" -ConfirmTeardown
 
 # Eliminar exclusivamente los recursos de GEPER cuando ya no se requieran
 ./infra/azure/scripts/manage-lab.ps1 -Action Teardown -SubscriptionId "<SUBSCRIPTION_ID>" -ConfirmTeardown

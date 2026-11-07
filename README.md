@@ -119,6 +119,7 @@ repositorio.
 
 ## 6. Documentación
 
+- [docs/live-modernization-and-postgres-runbook.md](docs/live-modernization-and-postgres-runbook.md) — **Runbook en vivo (60 min): GitHub Copilot Modernization Agent + Conversión y Transferencia Oracle 12c R2 → Azure Database for PostgreSQL (20–25 min)**
 - [infra/azure/README.md](infra/azure/README.md) — **IaC en Bicep (`mexicocentral`), Oracle 12c R2, Azure Front Door y operación en Azure**
 - [docs/architecture.md](docs/architecture.md) — arquitectura y acoplamientos
 - [docs/data-dictionary.md](docs/data-dictionary.md) — diccionario de datos

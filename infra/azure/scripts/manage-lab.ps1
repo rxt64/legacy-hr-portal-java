@@ -15,7 +15,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Validate', 'Deploy', 'Start', 'Deallocate', 'ResetDataset', 'Tunnel', 'Teardown')]
+    [ValidateSet('Validate', 'Deploy', 'Start', 'Deallocate', 'ResetDataset', 'Tunnel', 'TeardownTargetsOnly', 'Teardown')]
     [string]$Action,
 
     [string]$SubscriptionId = $env:AZURE_SUBSCRIPTION_ID,
@@ -101,6 +101,20 @@ switch ($Action) {
         } else {
             & ssh -N -L "${LocalTunnelPort}:127.0.0.1:8080" "${AdminUsername}@${pip}"
         }
+    }
+    'TeardownTargetsOnly' {
+        if (-not $ConfirmTeardown) {
+            throw "Para eliminar los recursos destino de modernización de GEPER debe especificar explícitamente -ConfirmTeardown."
+        }
+        Write-Host "==> Eliminando selectivamente solo los recursos destino de modernización de GEPER (PostgreSQL Flexible Server, Private Endpoint e identidad, conservando vm-geper-ora y Front Door)..."
+        $pgs = az postgres flexible-server list --resource-group $ResourceGroupName --query "[].name" -o tsv
+        foreach ($pg in $pgs) {
+            if ($pg) {
+                az network private-endpoint delete --resource-group $ResourceGroupName --name "pe-$pg" 2>$null
+                az postgres flexible-server delete --resource-group $ResourceGroupName --name $pg --yes
+            }
+        }
+        az identity delete --resource-group $ResourceGroupName --name "id-geper-modern-aca" 2>$null
     }
     'Teardown' {
         if (-not $ConfirmTeardown) {
