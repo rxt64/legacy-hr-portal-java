@@ -74,9 +74,15 @@ resource existingVnet 'Microsoft.Network/virtualNetworks@2023-11-01' existing = 
   name: existingVnetName
 }
 
-resource existingSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-11-01' existing = {
+resource geperSubnetWithNsg 'Microsoft.Network/virtualNetworks/subnets@2023-11-01' = {
   parent: existingVnet
   name: existingSubnetName
+  properties: {
+    addressPrefix: '10.42.2.0/24'
+    networkSecurityGroup: {
+      id: nsgId
+    }
+  }
 }
 
 resource pip 'Microsoft.Network/publicIPAddresses@2023-11-01' = if (enablePublicIp) {
@@ -110,7 +116,7 @@ resource nic 'Microsoft.Network/networkInterfaces@2023-11-01' = {
         properties: {
           privateIPAllocationMethod: 'Dynamic'
           subnet: {
-            id: existingSubnet.id
+            id: geperSubnetWithNsg.id
           }
           publicIPAddress: enablePublicIp ? {
             id: pip!.id
