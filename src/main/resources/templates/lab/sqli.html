@@ -31,12 +31,12 @@
             <table class="grid">
                 <tr><th>#</th><th>Nombre</th><th>Apellidos</th><th>Puesto</th><th>Departamento</th></tr>
                 <tr th:each="r : ${rows}">
-                    <td th:text="${r.employeeId}"></td>
-                    <td th:text="${r.firstName}"></td>
-                    <td th:text="${r.lastName}"></td>
-                    <td th:text="${r.jobTitle}"></td>
-                    <td th:text="${r.departmentName}"></td>
-                    <td th:if="${r.error}" colspan="5" th:text="${r.error}"></td>
+                    <td th:if="${!r.containsKey('error')}" th:text="${r.get('employeeId')}"></td>
+                    <td th:if="${!r.containsKey('error')}" th:text="${r.get('firstName')}"></td>
+                    <td th:if="${!r.containsKey('error')}" th:text="${r.get('lastName')}"></td>
+                    <td th:if="${!r.containsKey('error')}" th:text="${r.get('jobTitle')}"></td>
+                    <td th:if="${!r.containsKey('error')}" th:text="${r.get('departmentName')}"></td>
+                    <td th:if="${r.containsKey('error')}" colspan="5" th:text="${r.get('error')}"></td>
                 </tr>
             </table>
             <p class="muted">Filas: <span th:text="${#lists.size(rows)}"></span></p>

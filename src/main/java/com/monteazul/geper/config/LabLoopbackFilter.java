@@ -31,14 +31,14 @@ public class LabLoopbackFilter {
                     throws IOException, ServletException {
                 HttpServletRequest http = (HttpServletRequest) request;
                 String path = http.getRequestURI();
-                if (path != null && path.startsWith("/lab/") && !isLoopback(http)) {
+                if (path != null && (path.equals("/lab") || path.startsWith("/lab/")) && !isLoopback(http)) {
                     ((HttpServletResponse) response).sendError(HttpServletResponse.SC_NOT_FOUND);
                     return;
                 }
                 chain.doFilter(request, response);
             }
         });
-        reg.addUrlPatterns("/lab/*");
+        reg.addUrlPatterns("/lab", "/lab/*");
         reg.setName("labLoopbackGate");
         reg.setOrder(1);
         return reg;
@@ -46,6 +46,11 @@ public class LabLoopbackFilter {
 
     private static boolean isLoopback(HttpServletRequest http) {
         try {
+            if (http.getHeader("X-Forwarded-For") != null
+                    || http.getHeader("X-Azure-ClientIP") != null
+                    || http.getHeader("X-Azure-Ref") != null) {
+                return false;
+            }
             String remote = http.getRemoteAddr();
             if (remote == null) {
                 return false;
