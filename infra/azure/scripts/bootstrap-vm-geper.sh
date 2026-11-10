@@ -199,6 +199,12 @@ END;
 ALTER SYSTEM REGISTER;
 EXIT;
 EOSQL
+    for _ in $(seq 1 45); do
+      if "${ORACLE_HOME}/bin/lsnrctl" services | grep -qi "${PDB_NAME}"; then
+        break
+      fi
+      sleep 2
+    done
     ;;
   stop)
     if pgrep -f "ora_pmon_${ORACLE_SID}" >/dev/null 2>&1; then
@@ -365,6 +371,8 @@ ENABLE_VULNERABILITY_LABS=false
 GEPER_LAB_DB_URL=jdbc:oracle:thin:@//127.0.0.1:1521/${PDB_NAME}
 GEPER_LAB_DB_USER=GEPER_LABRO
 GEPER_LAB_DB_PASSWORD=${ORA_LABRO_PW}
+SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT=60000
+SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT=60000
 JAVA_TOOL_OPTIONS=-Doracle.jdbc.timezoneAsRegion=false -Duser.timezone=UTC
 EOF
 chown root:geper "$APP_ENV_FILE"
@@ -388,7 +396,8 @@ Group=geper
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${APP_ENV_FILE}
 ExecStart=/usr/bin/java -Xms256m -Xmx512m -jar ${APP_DIR}/geper.jar --server.address=\${SERVER_ADDRESS} --server.port=\${SERVER_PORT}
-Restart=on-failure
+ExecStartPost=/bin/bash -c 'for i in \$(seq 1 30); do curl -fsS http://127.0.0.1:8080/ >/dev/null 2>&1 && exit 0; sleep 2; done; exit 0'
+Restart=always
 RestartSec=5
 NoNewPrivileges=true
 PrivateTmp=true

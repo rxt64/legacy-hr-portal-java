@@ -34,16 +34,17 @@ resource geperOriginGroup 'Microsoft.Cdn/profiles/originGroups@2024-02-01' = {
   name: 'og-geper'
   properties: {
     sessionAffinityState: 'Enabled'
+    trafficRestorationTimeToHealedOrNewEndpointsInMinutes: 0
     loadBalancingSettings: {
-      sampleSize: 4
-      successfulSamplesRequired: 3
+      sampleSize: 2
+      successfulSamplesRequired: 1
       additionalLatencyInMilliseconds: 50
     }
     healthProbeSettings: {
       probePath: '/'
       probeRequestType: 'GET'
       probeProtocol: 'Http'
-      probeIntervalInSeconds: 30
+      probeIntervalInSeconds: 15
     }
   }
 }
