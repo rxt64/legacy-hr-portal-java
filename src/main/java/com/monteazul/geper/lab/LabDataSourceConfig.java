@@ -4,8 +4,10 @@ import com.monteazul.geper.config.LabProperties;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
 
@@ -19,10 +21,23 @@ import javax.sql.DataSource;
  * is never created and the lab routes are never registered.
  */
 @Configuration
-@ConditionalOnProperty(prefix = "geper.labs", name = "enabled", havingValue = "true")
 public class LabDataSourceConfig {
 
+    @Primary
+    @Bean(name = "dataSource")
+    public DataSource dataSource(DataSourceProperties properties) {
+        HikariConfig cfg = new HikariConfig();
+        cfg.setJdbcUrl(properties.determineUrl());
+        cfg.setUsername(properties.determineUsername());
+        cfg.setPassword(properties.determinePassword());
+        cfg.setMaximumPoolSize(5);
+        cfg.setPoolName("geper-app");
+        cfg.setConnectionInitSql("ALTER SESSION SET CURRENT_SCHEMA = GEPER_OWNER");
+        return new HikariDataSource(cfg);
+    }
+
     @Bean(name = "labReadOnlyDataSource")
+    @ConditionalOnProperty(prefix = "geper.labs", name = "enabled", havingValue = "true")
     public DataSource labReadOnlyDataSource(LabProperties labs) {
         LabProperties.DataSourceProps p = labs.getDatasource();
         HikariConfig cfg = new HikariConfig();
