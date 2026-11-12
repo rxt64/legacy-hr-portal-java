@@ -43,6 +43,9 @@ param modelSkuName string = 'GlobalStandard'
 @description('Nombre del proyecto de Microsoft Foundry a crear dentro del recurso (ver nota de limitación conocida más abajo: el proyecto NO se crea con este template, se documenta aquí solo como referencia del nombre a usar en el paso CLI posterior).')
 param foundryProjectName string = 'geper-oracle-migration'
 
+@description('Object ID (principal) de la cuenta Microsoft Entra ID que usará el wizard de migración (VS Code) para autenticarse contra Microsoft Foundry. El wizard oficial requiere el rol "Foundry User" (antes "Azure AI User"); además se otorga "Cognitive Services OpenAI User" para permitir llamadas de inferencia directas (verificación/pruebas fuera del wizard).')
+param presenterPrincipalId string
+
 @description('Tags aplicados al recurso de Foundry, identificándolo como herramienta del presentador y no parte del laboratorio.')
 param tags object = {}
 
@@ -66,6 +69,29 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
     publicNetworkAccess: 'Enabled'
     disableLocalAuth: false
     allowProjectManagement: true
+  }
+}
+
+var foundryUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '53ca6127-db72-4b80-b1b0-d745d6d5456d')
+var cogSvcOpenAiUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+
+resource foundryUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(foundryAccount.id, presenterPrincipalId, foundryUserRoleId)
+  scope: foundryAccount
+  properties: {
+    roleDefinitionId: foundryUserRoleId
+    principalId: presenterPrincipalId
+    principalType: 'User'
+  }
+}
+
+resource cogSvcOpenAiUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(foundryAccount.id, presenterPrincipalId, cogSvcOpenAiUserRoleId)
+  scope: foundryAccount
+  properties: {
+    roleDefinitionId: cogSvcOpenAiUserRoleId
+    principalId: presenterPrincipalId
+    principalType: 'User'
   }
 }
 

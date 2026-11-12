@@ -24,6 +24,7 @@ param modelVersion = '2025-12-11'
 param modelCapacity = 1000
 param modelSkuName = 'GlobalStandard'
 param foundryProjectName = 'geper-oracle-migration'
+param presenterPrincipalId = readEnvironmentVariable('FOUNDRY_PRESENTER_PRINCIPAL_ID', '')
 param tags = {
   application: 'GEPER'
   purpose: 'presenter-tool-oracle-to-postgres-schema-conversion'
