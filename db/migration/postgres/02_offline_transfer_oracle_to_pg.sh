@@ -3,6 +3,14 @@
 # GEPER - Transferencia offline reproducible Oracle 12c R2 -> PostgreSQL 16
 # y suite de validación pre/post migración.
 #
+# PRECONDICIÓN: el esquema geper_owner (tablas + trigger update_job_history)
+# ya debe existir en la base destino, desplegado por el wizard de migración
+# Oracle->PostgreSQL de la extensión PostgreSQL de VS Code (asistido por
+# Microsoft Foundry, modelo gpt-5.2) vía su Setup Experience. Este script NO
+# crea el esquema: lo verifica y, si falta, se detiene con instrucciones.
+# Separación estricta: conversión de esquema = IA (wizard); datos = este
+# script, 100% determinista, sin IA.
+#
 # Características:
 #   - Extrae de Oracle 12c R2 (12.2.0.1.0, GEPERPDB) en orden estricto de FK:
 #     1) DEPARTMENTS -> 2) JOBS -> 3) EMPLOYEES -> 4) JOB_HISTORY
@@ -132,11 +140,22 @@ SELECT 'COMMIT;' FROM DUAL;
 EXIT;
 EOSQL" > "${WORK_DIR}/generate_pg_load.sql"
 
-echo "==> [Paso 3] Aplicando DDL convertido y trigger PL/pgSQL en Azure Database for PostgreSQL (${PG_HOST}/${PG_DB})..."
+echo "==> [Paso 3] Verificando que el esquema y el trigger ya fueron desplegados por el wizard de migración Oracle->PostgreSQL de Microsoft Foundry (${PG_HOST}/${PG_DB})..."
 export PGPASSWORD="$PG_ADMIN_PASSWORD"
 export PGSSLMODE="require"
 
-psql -h "$PG_HOST" -U "$PG_ADMIN_USER" -d "$PG_DB" -v ON_ERROR_STOP=1 -f "${SCRIPT_DIR}/01_pg_schema_and_plpgsql_trigger.sql" >/dev/null
+SCHEMA_CHECK=$(psql -h "$PG_HOST" -U "$PG_ADMIN_USER" -d "$PG_DB" -At -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'geper_owner' AND table_name IN ('employees','departments','jobs','job_history');")
+TRIGGER_CHECK=$(psql -h "$PG_HOST" -U "$PG_ADMIN_USER" -d "$PG_DB" -At -c "SELECT COUNT(*) FROM pg_trigger WHERE tgname = 'update_job_history';")
+
+if [ "$SCHEMA_CHECK" != "4" ] || [ "$TRIGGER_CHECK" != "1" ]; then
+  echo "ERROR: el esquema geper_owner (4 tablas) y/o el trigger update_job_history no existen todavía en ${PG_DB}." >&2
+  echo "Este script YA NO crea el esquema: la conversión Oracle->PostgreSQL se hace con el wizard de la" >&2
+  echo "extensión PostgreSQL de VS Code + Microsoft Foundry (ver Etapa 3.4.1 de la guía). Corré ese wizard" >&2
+  echo "y su despliegue via Setup Experience (setup.ps1 -DatabaseMode existing) contra esta misma base" >&2
+  echo "(${PG_DB}) antes de ejecutar este script de transferencia de datos." >&2
+  exit 1
+fi
+echo "    Esquema y trigger confirmados en ${PG_DB} (desplegados previamente por el wizard de Foundry)."
 
 echo "==> [Paso 4] Configurando roles de mínimo privilegio (geper_app y geper_labro) en PostgreSQL..."
 psql -h "$PG_HOST" -U "$PG_ADMIN_USER" -d "$PG_DB" -v ON_ERROR_STOP=1 <<EOSQL >/dev/null
