@@ -16,6 +16,12 @@ param enableFrontDoorBackend bool = true
 @description('Habilitar regla explicita de entrada para el health probe del Load Balancer interno (requerida en este tenant: la regla default AllowAzureLoadBalancerInBound no fue suficiente en pruebas reales).')
 param enableInternalLbProbe bool = true
 
+@description('Habilitar acceso de solo lectura al Oracle Net Listener (1521) exclusivamente desde la subred de la VM Puente, para clientes visuales (Oracle SQL Developer) durante la demo. El resto de la VNet y el acceso a Internet quedan bloqueados.')
+param enableJumpboxOracleAccess bool = true
+
+@description('CIDR de la subred de la VM Puente (snet-jumpbox) con acceso de solo lectura a Oracle.')
+param jumpboxSubnetCidr string = '10.42.8.0/24'
+
 @description('Tags aplicados al NSG.')
 param tags object = {}
 
@@ -110,12 +116,43 @@ var baseDenyRules = [
   }
 ]
 
+var jumpboxOracleAccessRules = enableJumpboxOracleAccess ? [
+  {
+    name: 'Allow-Jumpbox-Oracle-1521'
+    properties: {
+      description: 'Permite acceso de solo lectura al Oracle Net Listener (1521) exclusivamente desde snet-jumpbox, para Oracle SQL Developer durante la demo.'
+      protocol: 'Tcp'
+      sourcePortRange: '*'
+      destinationPortRange: '1521'
+      sourceAddressPrefix: jumpboxSubnetCidr
+      destinationAddressPrefix: '*'
+      access: 'Allow'
+      priority: 160
+      direction: 'Inbound'
+    }
+  }
+  {
+    name: 'Deny-OtherVNet-Oracle-1521'
+    properties: {
+      description: 'Bloquea el resto de la VNet (todo excepto snet-jumpbox, ya permitido arriba con mayor prioridad) hacia el Oracle Net Listener (1521).'
+      protocol: 'Tcp'
+      sourcePortRange: '*'
+      destinationPortRange: '1521'
+      sourceAddressPrefix: 'VirtualNetwork'
+      destinationAddressPrefix: '*'
+      access: 'Deny'
+      priority: 220
+      direction: 'Inbound'
+    }
+  }
+] : []
+
 resource geperNsg 'Microsoft.Network/networkSecurityGroups@2023-11-01' = {
   name: nsgName
   location: location
   tags: tags
   properties: {
-    securityRules: concat(sshAllowRules, frontDoorAllowRules, internalLbProbeRules, baseDenyRules)
+    securityRules: concat(sshAllowRules, frontDoorAllowRules, internalLbProbeRules, jumpboxOracleAccessRules, baseDenyRules)
   }
 }
 

@@ -7,8 +7,10 @@
 # - Monta el disco administrado persistente (LUN 0 -> /u02) para datafiles Oracle.
 # - Utiliza Oracle Database 12c Release 2 (12.2.0.1.0) nativo en la VM (desde la
 #   imagen oficial de Oracle en Azure o desde linuxx64_12201_database.zip).
-# - Configura el Listener en loopback (127.0.0.1:1521), crea la CDB ORCL12C y la
-#   PDB GEPERPDB en /u02/oradata, y guarda el estado de apertura (SAVE STATE).
+# - Configura el Listener en loopback (127.0.0.1:1521) y en la IP privada de la
+#   VM (acceso de solo lectura desde snet-jumpbox para SSMS/SQL Developer), crea
+#   la CDB ORCL12C y la PDB GEPERPDB en /u02/oradata, y guarda el estado de
+#   apertura (SAVE STATE).
 # - Genera credenciales únicas en /etc/geper/credentials.env (0600, sin imprimir).
 # - Ejecuta SQL*Plus con WHENEVER SQLERROR EXIT SQL.SQLCODE (nunca CONTINUE).
 # - Instala Java 8 (OpenJDK 1.8), crea el usuario sin privilegios 'geper',
@@ -121,13 +123,29 @@ fi
 # shellcheck disable=SC1090
 source "$CRED_FILE"
 
-echo "==> [4/8] Configurando Oracle Net Listener en loopback (127.0.0.1:1521)..."
+echo "==> [4/8] Configurando Oracle Net Listener en loopback (127.0.0.1:1521) y en la IP privada de la VM (para el acceso de solo lectura del presentador desde snet-jumpbox vía SSMS/SQL Developer, Sección 'Acceso de solo lectura para clientes visuales' del README)..."
+GEPER_PRIVATE_IP="$(hostname -I | awk '{print $1}')"
 cat >"${ORACLE_HOME}/network/admin/listener.ora" <<EOF
 LISTENER =
   (DESCRIPTION_LIST =
     (DESCRIPTION =
       (ADDRESS = (PROTOCOL = TCP)(HOST = 127.0.0.1)(PORT = 1521))
+      (ADDRESS = (PROTOCOL = TCP)(HOST = ${GEPER_PRIVATE_IP})(PORT = 1521))
       (ADDRESS = (PROTOCOL = IPC)(KEY = EXTPROC1521))
+    )
+  )
+
+SID_LIST_LISTENER =
+  (SID_LIST =
+    (SID_DESC =
+      (GLOBAL_DBNAME = ${PDB_NAME})
+      (ORACLE_HOME = ${ORACLE_HOME})
+      (SID_NAME = ${ORACLE_SID})
+    )
+    (SID_DESC =
+      (GLOBAL_DBNAME = ${ORACLE_SID})
+      (ORACLE_HOME = ${ORACLE_HOME})
+      (SID_NAME = ${ORACLE_SID})
     )
   )
 EOF
