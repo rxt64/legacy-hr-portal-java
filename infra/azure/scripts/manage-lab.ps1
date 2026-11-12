@@ -7,6 +7,8 @@
     - Validate     : Ejecuta az bicep build, az deployment sub validate y what-if en mexicocentral.
     - Deploy       : Ejecuta el despliegue de Bicep de GEPER en mexicocentral.
     - Start        : Inicia la VM vm-geper-ora.
+    - Status       : Verifica (solo lectura, sin cambios) el estado de VM/discos/PostgreSQL con salida en color [OK]/[FALLO].
+                      Pensado para correr rápido antes de cada bloque de la demo, no solo al inicio del evento.
     - Deallocate   : Desasigna (detiene facturación de cómputo) la VM vm-geper-ora.
     - ResetDataset : Invoca reset-dataset-geper.sh dentro de la VM mediante az vm run-command.
     - Tunnel       : Abre un túnel SSH autenticado local (localhost:8080 -> 127.0.0.1:8080 en la VM).
@@ -15,7 +17,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Validate', 'Deploy', 'Start', 'Deallocate', 'ResetDataset', 'Tunnel', 'TeardownTargetsOnly', 'Teardown')]
+    [ValidateSet('Validate', 'Deploy', 'Start', 'Status', 'Deallocate', 'ResetDataset', 'Tunnel', 'TeardownTargetsOnly', 'Teardown')]
     [string]$Action,
 
     [string]$SubscriptionId = $env:AZURE_SUBSCRIPTION_ID,
@@ -87,8 +89,45 @@ switch ($Action) {
         $pgs = az postgres flexible-server list --resource-group $ResourceGroupName --query "[?state=='Stopped'].name" -o tsv 2>$null
         foreach ($pg in $pgs) {
             if ($pg) {
-                Write-Host "==> Iniciando Azure Database for PostgreSQL Flexible Server $pg..."
-                az postgres flexible-server start --resource-group $ResourceGroupName --name $pg --no-wait 2>$null
+                Write-Host "==> Iniciando Azure Database for PostgreSQL Flexible Server $pg (esperando a que quede 'Ready', no es fire-and-forget)..."
+                az postgres flexible-server start --resource-group $ResourceGroupName --name $pg 2>$null | Out-Null
+                $state = az postgres flexible-server show --resource-group $ResourceGroupName --name $pg --query "state" -o tsv 2>$null
+                if ($state -eq 'Ready') {
+                    Write-Host "[OK] PostgreSQL $pg -> Ready" -ForegroundColor Green
+                } else {
+                    Write-Host "[FALLO] PostgreSQL $pg -> '$state' (revisa manualmente, no quedó en Ready tras el start)" -ForegroundColor Red
+                }
+            }
+        }
+    }
+    'Status' {
+        Write-Host "==> Verificando estado de los recursos de GEPER (solo lectura, sin cambios)..."
+        $vmState = az vm get-instance-view --resource-group $ResourceGroupName --name $VmName --query "instanceView.statuses[?starts_with(code, 'PowerState/')].displayStatus | [0]" -o tsv 2>$null
+        if ($vmState -eq 'VM running') {
+            Write-Host "[OK] VM $VmName -> $vmState" -ForegroundColor Green
+        } else {
+            Write-Host "[FALLO] VM $VmName -> '$vmState' (se esperaba 'VM running')" -ForegroundColor Red
+        }
+        foreach ($dName in @("osdisk-$VmName", "disk-$VmName-oradata")) {
+            $sku = az disk show --resource-group $ResourceGroupName --name $dName --query "sku.name" -o tsv 2>$null
+            if ($sku -eq 'StandardSSD_LRS') {
+                Write-Host "[OK] Disco $dName -> $sku" -ForegroundColor Green
+            } else {
+                Write-Host "[FALLO] Disco $dName -> '$sku' (se esperaba StandardSSD_LRS; una política de gobernanza pudo degradarlo)" -ForegroundColor Red
+            }
+        }
+        $pgNames = az postgres flexible-server list --resource-group $ResourceGroupName --query "[].name" -o tsv 2>$null
+        if (-not $pgNames) {
+            Write-Host "[FALLO] No se encontró ningún Azure Database for PostgreSQL Flexible Server en '$ResourceGroupName'." -ForegroundColor Red
+        }
+        foreach ($pg in $pgNames) {
+            if ($pg) {
+                $state = az postgres flexible-server show --resource-group $ResourceGroupName --name $pg --query "state" -o tsv 2>$null
+                if ($state -eq 'Ready') {
+                    Write-Host "[OK] PostgreSQL $pg -> Ready" -ForegroundColor Green
+                } else {
+                    Write-Host "[FALLO] PostgreSQL $pg -> '$state' (se esperaba Ready; ejecuta -Action Start para reiniciarlo)" -ForegroundColor Red
+                }
             }
         }
     }
