@@ -45,6 +45,18 @@ BEGIN
     EXECUTE IMMEDIATE 'CREATE USER GEPER_LABRO IDENTIFIED BY "LabRo#Lab2012" DEFAULT TABLESPACE USERS TEMPORARY TABLESPACE TEMP';
   END IF;
   EXECUTE IMMEDIATE 'GRANT CREATE SESSION TO GEPER_LABRO';
+
+  -- Dictionary/metadata-only grants so GEPER_LABRO can also be used as the
+  -- source account for the Oracle-to-PostgreSQL schema conversion wizard
+  -- (VS Code PostgreSQL extension + Microsoft Foundry). These grants expose
+  -- ONLY schema metadata (object definitions, dependencies), never row
+  -- data; required privileges per the official tutorial prerequisites:
+  -- CONNECT, SELECT_CATALOG_ROLE, SELECT ANY DICTIONARY, SELECT on
+  -- SYS.ARGUMENT$ and SYS.V_$RESOURCE_LIMIT.
+  EXECUTE IMMEDIATE 'GRANT SELECT_CATALOG_ROLE TO GEPER_LABRO';
+  EXECUTE IMMEDIATE 'GRANT SELECT ANY DICTIONARY TO GEPER_LABRO';
+  EXECUTE IMMEDIATE 'GRANT SELECT ON SYS.ARGUMENT$ TO GEPER_LABRO';
+  EXECUTE IMMEDIATE 'GRANT SELECT ON SYS.V_$RESOURCE_LIMIT TO GEPER_LABRO';
 END;
 /
 
