@@ -13,6 +13,9 @@ param presenterAllowedCidr string = ''
 @description('Permitir tráfico entrante desde el Service Tag AzureFrontDoor.Backend hacia el puerto 8080 de GEPER.')
 param enableFrontDoorBackend bool = true
 
+@description('Habilitar regla explicita de entrada para el health probe del Load Balancer interno (requerida en este tenant: la regla default AllowAzureLoadBalancerInBound no fue suficiente en pruebas reales).')
+param enableInternalLbProbe bool = true
+
 @description('Tags aplicados al NSG.')
 param tags object = {}
 
@@ -47,6 +50,23 @@ var frontDoorAllowRules = enableFrontDoorBackend ? [
       destinationAddressPrefix: '*'
       access: 'Allow'
       priority: 150
+      direction: 'Inbound'
+    }
+  }
+] : []
+
+var internalLbProbeRules = enableInternalLbProbe ? [
+  {
+    name: 'Allow-AzureLoadBalancer-Probe-Inbound'
+    properties: {
+      description: 'Permite explicitamente el health probe del Load Balancer interno (Service Tag AzureLoadBalancer). La regla default AllowAzureLoadBalancerInBound (65001) no fue suficiente en este tenant durante pruebas reales; esta regla explicita a prioridad 140 lo garantiza.'
+      protocol: 'Tcp'
+      sourcePortRange: '*'
+      destinationPortRange: '*'
+      sourceAddressPrefix: 'AzureLoadBalancer'
+      destinationAddressPrefix: '*'
+      access: 'Allow'
+      priority: 140
       direction: 'Inbound'
     }
   }
@@ -95,7 +115,7 @@ resource geperNsg 'Microsoft.Network/networkSecurityGroups@2023-11-01' = {
   location: location
   tags: tags
   properties: {
-    securityRules: concat(sshAllowRules, frontDoorAllowRules, baseDenyRules)
+    securityRules: concat(sshAllowRules, frontDoorAllowRules, internalLbProbeRules, baseDenyRules)
   }
 }
 

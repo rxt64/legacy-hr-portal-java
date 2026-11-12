@@ -96,6 +96,12 @@ param tags object = {
   managedBy: 'bicep'
 }
 
+@description('Aprovisionar acceso privado (Load Balancer interno + registro DNS) para navegar GEPER únicamente desde la VNet del laboratorio (VM Puente), sin depender de Azure Front Door durante la demo. Requiere que la zona DNS privada ya exista (creada por legacy-academic-portal-dotnet).')
+param enablePrivateAccess bool = true
+
+@description('Nombre de la zona DNS privada compartida existente (creada por legacy-academic-portal-dotnet).')
+param existingPrivateDnsZoneName string = 'lab.internal'
+
 resource existingRg 'Microsoft.Resources/resourceGroups@2024-03-01' existing = {
   name: existingResourceGroupName
 }
@@ -159,6 +165,31 @@ module geperFrontDoor 'modules/geper-frontdoor.bicep' = if (enableFrontDoor && e
   }
 }
 
+module geperInternalLb 'modules/geper-internal-lb.bicep' = if (enablePrivateAccess) {
+  name: 'deploy-geper-internal-lb'
+  scope: existingRg
+  params: {
+    location: location
+    lbName: 'lb-geper-internal'
+    existingVnetName: existingVnetName
+    existingSubnetName: existingSubnetName
+    geperVmPrivateIp: geperVm.outputs.privateIpAddress
+    appPort: 8080
+    tags: union(tags, {
+      application: 'GEPER'
+    })
+  }
+}
+
+module geperPrivateDnsRecord 'modules/geper-private-dns-record.bicep' = if (enablePrivateAccess) {
+  name: 'deploy-geper-private-dns-record'
+  scope: existingRg
+  params: {
+    privateDnsZoneName: existingPrivateDnsZoneName
+    geperLbFrontendIp: enablePrivateAccess ? geperInternalLb!.outputs.frontendPrivateIp : ''
+  }
+}
+
 module geperPostgres 'modules/postgres-flexible.bicep' = if (enablePostgresMigrationTarget) {
   name: 'deploy-geper-postgres-migration'
   scope: existingRg
@@ -194,3 +225,5 @@ output postgresConversionValidationDbName string = enablePostgresMigrationTarget
 output postgresRehearsalDbName string = enablePostgresMigrationTarget ? geperPostgres!.outputs.postgresRehearsalDbName : ''
 output geperModernIdentityName string = enablePostgresMigrationTarget ? geperPostgres!.outputs.geperModernIdentityName : ''
 output geperModernIdentityClientId string = enablePostgresMigrationTarget ? geperPostgres!.outputs.geperModernIdentityClientId : ''
+output geperPrivateLbIp string = enablePrivateAccess ? geperInternalLb!.outputs.frontendPrivateIp : ''
+output geperPrivateFqdn string = enablePrivateAccess ? geperPrivateDnsRecord!.outputs.geperFqdn : ''
