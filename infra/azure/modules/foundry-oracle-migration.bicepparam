@@ -23,6 +23,7 @@ param modelName = 'gpt-5.2'
 param modelVersion = '2025-12-11'
 param modelCapacity = 1000
 param modelSkuName = 'GlobalStandard'
+param foundryProjectName = 'geper-oracle-migration'
 param tags = {
   application: 'GEPER'
   purpose: 'presenter-tool-oracle-to-postgres-schema-conversion'

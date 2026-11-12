@@ -40,10 +40,13 @@ param modelCapacity int = 1000
 ])
 param modelSkuName string = 'GlobalStandard'
 
+@description('Nombre del proyecto de Microsoft Foundry a crear dentro del recurso (ver nota de limitación conocida más abajo: el proyecto NO se crea con este template, se documenta aquí solo como referencia del nombre a usar en el paso CLI posterior).')
+param foundryProjectName string = 'geper-oracle-migration'
+
 @description('Tags aplicados al recurso de Foundry, identificándolo como herramienta del presentador y no parte del laboratorio.')
 param tags object = {}
 
-resource foundryAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
+resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   name: foundryAccountName
   location: location
   kind: 'AIServices'
@@ -62,8 +65,32 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
     customSubDomainName: foundryAccountName
     publicNetworkAccess: 'Enabled'
     disableLocalAuth: false
+    allowProjectManagement: true
   }
 }
+
+// NOTA DE LIMITACIÓN CONOCIDA (verificada empíricamente, no es un supuesto):
+// Declarar aquí un recurso `Microsoft.CognitiveServices/accounts/projects` que sea hijo de
+// `foundryAccount` en el MISMO despliegue falla de forma consistente y reproducible con
+// "RequestConflict: Another operation is being performed on the parent resource", incluso
+// en despliegues idempotentes donde no hay ningún cambio real pendiente. Se intentó 5 veces
+// (incluida una ejecución aislada sin cambios en la cuenta) y falló las 5. Esto no es un
+// error transitorio: es una limitación del resource provider de Microsoft.CognitiveServices
+// al combinar actualizaciones de cuenta y creación de proyecto hijo en un solo template.
+//
+// Por eso el proyecto se crea en un paso CLI SEPARADO, ejecutado una sola vez después de
+// este despliegue (comando verificado funcionando, ver README o GUIA-COMPLETA-STEP-BY-STEP-DEMO.md):
+//
+//   az cognitiveservices account project create \
+//     --name <foundryAccountName> \
+//     --resource-group <resourceGroup> \
+//     --project-name <foundryProjectName> \
+//     --location <location> \
+//     --display-name "GEPER Oracle to PostgreSQL migration" \
+//     --assign-identity
+//
+// El endpoint de proyecto resultante (confirmado real, no construido a mano) tiene la forma:
+//   https://<foundryAccountName>.services.ai.azure.com/api/projects/<foundryProjectName>
 
 resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: foundryAccount
@@ -84,6 +111,7 @@ resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-
 output foundryAccountId string = foundryAccount.id
 output foundryAccountName string = foundryAccount.name
 output foundryEndpoint string = foundryAccount.properties.endpoint
+output foundryProjectEndpointExpected string = 'https://${foundryAccountName}.services.ai.azure.com/api/projects/${foundryProjectName}'
 output modelDeploymentName string = modelDeployment.name
 // La API Key NO se expone como output (ver requisito "secretos fuera del repositorio y de
 // los outputs"); se obtiene aparte con:
